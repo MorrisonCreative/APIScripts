@@ -4,12 +4,12 @@ Simple script to export all end users from Zendesk
 """
 
 import requests
-import json
+import csv
 
 # Zendesk Configuration
-ZENDESK_SUBDOMAIN = "<SUBDOMAIN>"  # Replace with your Zendesk subdomain
-ZENDESK_EMAIL = "<EMAIL>"  # Replace with your Zendesk email
-ZENDESK_API_TOKEN = "<TOKEN>"  # Replace with your API token
+ZENDESK_SUBDOMAIN = "your-subdomain"  # Replace with your Zendesk subdomain
+ZENDESK_EMAIL = "your-email@example.com"  # Replace with your Zendesk email
+ZENDESK_API_TOKEN = "your-api-token-here"  # Replace with your API token
 
 # API endpoint
 BASE_URL = f"https://{ZENDESK_SUBDOMAIN}.zendesk.com"
@@ -42,12 +42,24 @@ def export_end_users():
         # Get next page URL (Zendesk uses cursor-based pagination)
         url = data.get('next_page')
 
-    # Save to JSON file
-    output_file = "zendesk_end_users.json"
-    with open(output_file, 'w') as f:
-        json.dump(all_users, f, indent=2)
+    # Save to CSV file
+    output_file = "zendesk_end_users.csv"
 
-    print(f"\n✓ Successfully exported {len(all_users)} end users to {output_file}")
+    if all_users:
+        # Extract all unique keys from all users
+        fieldnames = set()
+        for user in all_users:
+            fieldnames.update(user.keys())
+        fieldnames = sorted(fieldnames)
+
+        with open(output_file, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(all_users)
+
+        print(f"\n✓ Successfully exported {len(all_users)} end users to {output_file}")
+    else:
+        print("\n! No users found to export")
 
 if __name__ == "__main__":
     export_end_users()
