@@ -7,9 +7,9 @@ import requests
 import json
 
 # Zendesk Configuration
-ZENDESK_SUBDOMAIN = "corelightsupport"  # Replace with your Zendesk subdomain
-ZENDESK_EMAIL = "hunter.morrison@corelight.com"  # Replace with your Zendesk email
-ZENDESK_API_TOKEN = "MG5Nz3vEPeKQ33zLM8jtZCID8l5r23Wpt7XtrlpG"  # Replace with your API token
+ZENDESK_SUBDOMAIN = "<SUBDOMAIN>"  # Replace with your Zendesk subdomain
+ZENDESK_EMAIL = "<EMAIL>"  # Replace with your Zendesk email
+ZENDESK_API_TOKEN = "<TOKEN>"  # Replace with your API token
 
 # API endpoint
 BASE_URL = f"https://{ZENDESK_SUBDOMAIN}.zendesk.com"
