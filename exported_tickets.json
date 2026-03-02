@@ -421,6 +421,1307 @@
         "allow_attachments": true,
         "from_messaging_channel": false,
         "support_type": "agent",
-        "result_type": "ticket"
+        "result_type": "ticket",
+        "audits": [
+            {
+                "id": 48563919494419,
+                "ticket_id": 28624,
+                "created_at": "2026-01-27T01:49:24Z",
+                "author_id": 48444616584211,
+                "metadata": {
+                    "system": {
+                        "client": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+                        "ip_address": "24.113.185.128",
+                        "location": "Port Orchard, WA, United States",
+                        "latitude": 47.5329,
+                        "longitude": -122.5801
+                    },
+                    "custom": {},
+                    "notifications_suppressed_for": [
+                        369660518314
+                    ]
+                },
+                "events": [
+                    {
+                        "id": 48563919494547,
+                        "type": "Comment",
+                        "author_id": 48444616584211,
+                        "body": "We are attempting to upgrade our sensors overnight and one of our sensors has given us an error that says \"NGS deployment error. contact corelight support\" and appears unhealthy. We are in a Google meeting here if you are able to join when available.\r\n\r\nhttps://meet.google.com/bsj-yahy-pwo",
+                        "html_body": "<div class=\"zd-comment\" dir=\"auto\"><p dir=\"auto\">We are attempting to upgrade our sensors overnight and one of our sensors has given us an error that says \"NGS deployment error. contact corelight support\" and appears unhealthy. We are in a Google meeting here if you are able to join when available.</p>\n\n<p dir=\"auto\"><a href=\"https://meet.google.com/bsj-yahy-pwo\" target=\"_blank\" rel=\"nofollow noreferrer\">https://meet.google.com/bsj-yahy-pwo</a></p></div>",
+                        "plain_body": "We are attempting to upgrade our sensors overnight and one of our sensors has given us an error that says \"NGS deployment error. contact corelight support\" and appears unhealthy. We are in a Google meeting here if you are able to join when available. \n\n https://meet.google.com/bsj-yahy-pwo",
+                        "public": true,
+                        "attachments": [],
+                        "audit_id": 48563919494419
+                    },
+                    {
+                        "id": 48563919494675,
+                        "type": "Create",
+                        "value": "45205",
+                        "field_name": "brand_id"
+                    },
+                    {
+                        "id": 48563919494803,
+                        "type": "Create",
+                        "value": "URGENT Corelight Sensor failed after upgrade",
+                        "field_name": "subject"
+                    },
+                    {
+                        "id": 48563919494931,
+                        "type": "Create",
+                        "value": "360004592934",
+                        "field_name": "ticket_form_id"
+                    },
+                    {
+                        "id": 48563919495059,
+                        "type": "Create",
+                        "value": "48444616584211",
+                        "field_name": "requester_id"
+                    },
+                    {
+                        "id": 48563919495187,
+                        "type": "Create",
+                        "value": [
+                            "enterprise_support",
+                            "p1"
+                        ],
+                        "field_name": "tags"
+                    },
+                    {
+                        "id": 48563919495315,
+                        "type": "Create",
+                        "value": "p1",
+                        "field_name": "360047533253"
+                    },
+                    {
+                        "id": 48563919495443,
+                        "type": "Create",
+                        "value": null,
+                        "field_name": "priority"
+                    },
+                    {
+                        "id": 48563919495571,
+                        "type": "Create",
+                        "value": "incident",
+                        "field_name": "type"
+                    },
+                    {
+                        "id": 48563919495699,
+                        "type": "Create",
+                        "value": "new",
+                        "field_name": "status"
+                    },
+                    {
+                        "id": 48563919495827,
+                        "type": "Create",
+                        "value": "48376225227283",
+                        "field_name": "organization_id"
+                    },
+                    {
+                        "id": 48563919495955,
+                        "type": "Create",
+                        "value": "1500003687822",
+                        "field_name": "custom_status_id"
+                    },
+                    {
+                        "id": 48563919496083,
+                        "type": "WebhookEvent",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "ES Support Notification",
+                                    "id": 360163888273,
+                                    "revision_id": 37
+                                },
+                                "rel": "trigger"
+                            }
+                        }
+                    },
+                    {
+                        "id": 48563919496211,
+                        "type": "WebhookEvent",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "ES Support Notification (Pager Duty)",
+                                    "id": 360170493793,
+                                    "revision_id": 30
+                                },
+                                "rel": "trigger"
+                            }
+                        }
+                    },
+                    {
+                        "id": 48563919496339,
+                        "type": "WebhookEvent",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "ES Support Notification (Pager Duty)",
+                                    "id": 360170493793,
+                                    "revision_id": 30
+                                },
+                                "rel": "trigger"
+                            }
+                        }
+                    },
+                    {
+                        "id": 48563919496467,
+                        "type": "Change",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "ES Support Notification (Pager Duty)",
+                                    "id": 360170493793,
+                                    "revision_id": 30
+                                },
+                                "rel": "trigger"
+                            }
+                        },
+                        "value": [
+                            "enterprise_support",
+                            "p1",
+                            "pager_duty"
+                        ],
+                        "field_name": "tags",
+                        "previous_value": [
+                            "enterprise_support",
+                            "p1"
+                        ]
+                    },
+                    {
+                        "id": 48563919496595,
+                        "type": "Notification",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "Email notifications - refined",
+                                    "id": 81662668,
+                                    "revision_id": 6
+                                },
+                                "rel": "trigger"
+                            }
+                        },
+                        "subject": "[Zendesk] #{{ticket.id}} {{ current_user.name }} [{{ticket.organization.name}}]: {{ticket.title}}",
+                        "body": "\nURL: {{ ticket.link }} \n\n> Updated by {{ current_user.name }} ({{ user.organization.name }}) via {{ticket.via}}\n\n[Public: {{ ticket.latest_comment.is_public }}]\n\n{{ ticket.latest_comment }}\n\n> Ticket Summary\n\nStatus:       {{ ticket.status }}\nPriority:     {{ ticket.priority }}\nOrganization: {{ ticket.organization.name }}\nCreated:      {{ ticket.created_at_with_time }}\nUpdated:      {{ ticket.updated_at_with_time }}\nRequester:    {{ ticket.requester }}\nAssignee:     {{ ticket.assignee }}\n\nDescription:\n\n{{ ticket.description }}",
+                        "recipients": [
+                            430773265453,
+                            28005679964691,
+                            29040662961555,
+                            24252267984659,
+                            402431087914,
+                            33078861456787,
+                            1513330185261,
+                            42863113378579,
+                            27017298887,
+                            5789399187219,
+                            1503135047501,
+                            41736761496083,
+                            42532841661459,
+                            403803261994,
+                            40964132835731,
+                            12356854047763,
+                            31361388568979,
+                            22619145788,
+                            384899939533,
+                            39451214772755,
+                            44802362765075
+                        ]
+                    },
+                    {
+                        "id": 48563919496723,
+                        "type": "Change",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "P1 to Urgent",
+                                    "id": 360197267394,
+                                    "revision_id": 2
+                                },
+                                "rel": "trigger"
+                            }
+                        },
+                        "value": "urgent",
+                        "field_name": "priority",
+                        "previous_value": null
+                    },
+                    {
+                        "id": 48563919496851,
+                        "type": "WebhookEvent",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "App - Survey - Set requester token",
+                                    "id": 14382930387219,
+                                    "revision_id": 1
+                                },
+                                "rel": "trigger"
+                            }
+                        }
+                    },
+                    {
+                        "id": 48563919496979,
+                        "type": "WebhookEvent",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "RunLLM Notify Webhook on Ticket Created",
+                                    "id": 43757684007187,
+                                    "revision_id": 1
+                                },
+                                "rel": "trigger"
+                            }
+                        }
+                    },
+                    {
+                        "id": 48563919499155,
+                        "type": "Create",
+                        "value": "Enterprise Support",
+                        "field_name": "sla_policy"
+                    },
+                    {
+                        "id": 48563931507219,
+                        "type": "AnswerBotNotification",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "to": {},
+                                "from": {
+                                    "deleted": false,
+                                    "title": "Notify requester of received request (AnswerBot)",
+                                    "id": 31889965
+                                },
+                                "rel": "trigger"
+                            }
+                        },
+                        "author_id": 48444616584211,
+                        "body": "Your request ({{ticket.id}}) has been received and is being reviewed by our support staff.\n\nURL: {{ ticket.link }} \n\n{% if answer_bot.article_count > 0 %}\nHere are some great articles that may help. This is a trial and we welcome any feedback about the results:\n{{answer_bot.article_list}}\n{{answer_bot.first_article_body}}\n{% endif %}\n\nTo add additional comments, reply to this email.\n\n\nBe sure to check out the new \"Ask AI\" feature on docs.corelight.com for an improved and intuitive search.\n\n\n",
+                        "public": false,
+                        "audit_id": 48563919494419,
+                        "created_at": "2026-01-27T01:49:24Z",
+                        "recipients": [
+                            48444616584211
+                        ]
+                    }
+                ],
+                "via": {
+                    "channel": "web",
+                    "source": {
+                        "from": {},
+                        "to": {},
+                        "rel": null
+                    }
+                }
+            },
+            {
+                "id": 48563950241811,
+                "ticket_id": 28624,
+                "created_at": "2026-01-27T01:49:24Z",
+                "author_id": -1,
+                "metadata": {
+                    "system": {},
+                    "custom": {},
+                    "parent_audit_id": "48563919494419"
+                },
+                "events": [
+                    {
+                        "id": 48563916339091,
+                        "type": "Change",
+                        "previous_value": null,
+                        "value": {
+                            "minutes": 60,
+                            "seconds": 3600,
+                            "in_business_hours": false
+                        },
+                        "field_name": "first_reply_time",
+                        "via": {
+                            "source": {
+                                "rel": "sla_target_change"
+                            },
+                            "current_sla_policy": "Enterprise Support"
+                        }
+                    }
+                ],
+                "via": {
+                    "channel": "sla",
+                    "source": {
+                        "from": {},
+                        "to": {},
+                        "rel": null
+                    }
+                }
+            },
+            {
+                "id": 48563903484563,
+                "ticket_id": 28624,
+                "created_at": "2026-01-27T01:49:26Z",
+                "author_id": -1,
+                "metadata": {
+                    "system": {},
+                    "custom": {},
+                    "notifications_suppressed_for": [
+                        369660518314
+                    ]
+                },
+                "events": [
+                    {
+                        "id": 48563903484691,
+                        "type": "AutomaticAnswerSend",
+                        "author_id": -1,
+                        "body": [
+                            {
+                                "article": {
+                                    "article_id": 34670553558803,
+                                    "brand_id": 45205,
+                                    "locale": "en-us",
+                                    "score": 0.4020378064301279,
+                                    "title": "What is Corelight NGS Sensor?",
+                                    "url": "https://corelight.zendesk.com/api/v2/help_center/en-us/articles/34670553558803.json",
+                                    "html_url": "https://support.corelight.com/hc/en-us/articles/34670553558803-What-is-Corelight-NGS-Sensor",
+                                    "id": 34670553558803
+                                },
+                                "reviews": {
+                                    "enduser": null,
+                                    "agent": []
+                                },
+                                "viewed": false
+                            },
+                            {
+                                "article": {
+                                    "article_id": 360001457708,
+                                    "brand_id": 45205,
+                                    "locale": "en-us",
+                                    "score": 0.4285494434712831,
+                                    "title": "Corelight Sensor Known Issues",
+                                    "url": "https://corelight.zendesk.com/api/v2/help_center/en-us/articles/360001457708.json",
+                                    "html_url": "https://support.corelight.com/hc/en-us/articles/360001457708-Corelight-Sensor-Known-Issues",
+                                    "id": 360001457708
+                                },
+                                "reviews": {
+                                    "enduser": null,
+                                    "agent": []
+                                },
+                                "viewed": false
+                            },
+                            {
+                                "article": {
+                                    "article_id": 4882304375571,
+                                    "brand_id": 45205,
+                                    "locale": "en-us",
+                                    "score": 0.4436711391905301,
+                                    "title": "Corelight Software Micro Sensor Release Notes",
+                                    "url": "https://corelight.zendesk.com/api/v2/help_center/en-us/articles/4882304375571.json",
+                                    "html_url": "https://support.corelight.com/hc/en-us/articles/4882304375571-Corelight-Software-Micro-Sensor-Release-Notes",
+                                    "id": 4882304375571
+                                },
+                                "reviews": {
+                                    "enduser": null,
+                                    "agent": []
+                                },
+                                "viewed": false
+                            }
+                        ],
+                        "public": true,
+                        "audit_id": 48563903484563,
+                        "created_at": "2026-01-27T01:49:26Z"
+                    },
+                    {
+                        "id": 48563903484819,
+                        "type": "Change",
+                        "value": [
+                            "ar_suggest_true",
+                            "enterprise_support",
+                            "p1",
+                            "pager_duty"
+                        ],
+                        "field_name": "tags",
+                        "previous_value": [
+                            "enterprise_support",
+                            "p1",
+                            "pager_duty"
+                        ]
+                    },
+                    {
+                        "id": 48563903484947,
+                        "type": "WebhookEvent",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "ES Support Notification",
+                                    "id": 360163888273,
+                                    "revision_id": 37
+                                },
+                                "rel": "trigger"
+                            }
+                        }
+                    },
+                    {
+                        "id": 48563903485075,
+                        "type": "Notification",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "Email notifications - refined",
+                                    "id": 81662668,
+                                    "revision_id": 6
+                                },
+                                "rel": "trigger"
+                            }
+                        },
+                        "subject": "[Zendesk] #{{ticket.id}} {{ current_user.name }} [{{ticket.organization.name}}]: {{ticket.title}}",
+                        "body": "\nURL: {{ ticket.link }} \n\n> Updated by {{ current_user.name }} ({{ user.organization.name }}) via {{ticket.via}}\n\n[Public: {{ ticket.latest_comment.is_public }}]\n\n{{ ticket.latest_comment }}\n\n> Ticket Summary\n\nStatus:       {{ ticket.status }}\nPriority:     {{ ticket.priority }}\nOrganization: {{ ticket.organization.name }}\nCreated:      {{ ticket.created_at_with_time }}\nUpdated:      {{ ticket.updated_at_with_time }}\nRequester:    {{ ticket.requester }}\nAssignee:     {{ ticket.assignee }}\n\nDescription:\n\n{{ ticket.description }}",
+                        "recipients": [
+                            430773265453,
+                            28005679964691,
+                            29040662961555,
+                            24252267984659,
+                            402431087914,
+                            33078861456787,
+                            1513330185261,
+                            42863113378579,
+                            27017298887,
+                            5789399187219,
+                            1503135047501,
+                            41736761496083,
+                            42532841661459,
+                            403803261994,
+                            40964132835731,
+                            12356854047763,
+                            31361388568979,
+                            22619145788,
+                            384899939533,
+                            39451214772755,
+                            44802362765075
+                        ]
+                    },
+                    {
+                        "id": 48563903485203,
+                        "type": "WebhookEvent",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "App - Survey - Set requester token",
+                                    "id": 14382930387219,
+                                    "revision_id": 1
+                                },
+                                "rel": "trigger"
+                            }
+                        }
+                    }
+                ],
+                "via": {
+                    "channel": "web",
+                    "source": {
+                        "from": {},
+                        "to": {},
+                        "rel": null
+                    }
+                }
+            },
+            {
+                "id": 48564081912211,
+                "ticket_id": 28624,
+                "created_at": "2026-01-27T02:01:19Z",
+                "author_id": -1,
+                "metadata": {
+                    "system": {},
+                    "custom": {},
+                    "notifications_suppressed_for": [
+                        369660518314
+                    ]
+                },
+                "events": [
+                    {
+                        "id": 48564081912339,
+                        "type": "Notification",
+                        "subject": "***{{ticket.id}} has less than 2 hours until SLA Breach***",
+                        "body": "{{ticket.organization.name}}\n{{ticket.id}} \n{{ticket.id}} \n{{ticket.description}}\n\n{{ticket.account}}\nPlease follow-up on this ticket as soon as possible as it is close to breaching the SLA.\n\nMany thanks",
+                        "recipients": [
+                            430773265453,
+                            28005679964691,
+                            29040662961555,
+                            24252267984659,
+                            402431087914,
+                            33078861456787,
+                            1513330185261,
+                            42863113378579,
+                            27017298887,
+                            5789399187219,
+                            1503135047501,
+                            41736761496083,
+                            42532841661459,
+                            403803261994,
+                            40964132835731,
+                            12356854047763,
+                            31361388568979,
+                            22619145788,
+                            384899939533,
+                            39451214772755,
+                            44802362765075
+                        ]
+                    },
+                    {
+                        "id": 48564081912467,
+                        "type": "Change",
+                        "value": [
+                            "ar_suggest_true",
+                            "enterprise_support",
+                            "less_than_2hrs_until_sla_breach",
+                            "p1",
+                            "pager_duty"
+                        ],
+                        "field_name": "tags",
+                        "previous_value": [
+                            "ar_suggest_true",
+                            "enterprise_support",
+                            "p1",
+                            "pager_duty"
+                        ]
+                    },
+                    {
+                        "id": 48564081912595,
+                        "type": "WebhookEvent",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "ES Support Notification",
+                                    "id": 360163888273,
+                                    "revision_id": 37
+                                },
+                                "rel": "trigger"
+                            }
+                        }
+                    },
+                    {
+                        "id": 48564081912723,
+                        "type": "Notification",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "Email notifications - refined",
+                                    "id": 81662668,
+                                    "revision_id": 6
+                                },
+                                "rel": "trigger"
+                            }
+                        },
+                        "subject": "[Zendesk] #{{ticket.id}} {{ current_user.name }} [{{ticket.organization.name}}]: {{ticket.title}}",
+                        "body": "\nURL: {{ ticket.link }} \n\n> Updated by {{ current_user.name }} ({{ user.organization.name }}) via {{ticket.via}}\n\n[Public: {{ ticket.latest_comment.is_public }}]\n\n{{ ticket.latest_comment }}\n\n> Ticket Summary\n\nStatus:       {{ ticket.status }}\nPriority:     {{ ticket.priority }}\nOrganization: {{ ticket.organization.name }}\nCreated:      {{ ticket.created_at_with_time }}\nUpdated:      {{ ticket.updated_at_with_time }}\nRequester:    {{ ticket.requester }}\nAssignee:     {{ ticket.assignee }}\n\nDescription:\n\n{{ ticket.description }}",
+                        "recipients": [
+                            430773265453,
+                            28005679964691,
+                            29040662961555,
+                            24252267984659,
+                            402431087914,
+                            33078861456787,
+                            1513330185261,
+                            42863113378579,
+                            27017298887,
+                            5789399187219,
+                            1503135047501,
+                            41736761496083,
+                            42532841661459,
+                            403803261994,
+                            40964132835731,
+                            12356854047763,
+                            31361388568979,
+                            22619145788,
+                            384899939533,
+                            39451214772755,
+                            44802362765075
+                        ]
+                    }
+                ],
+                "via": {
+                    "channel": "rule",
+                    "source": {
+                        "to": {},
+                        "from": {
+                            "deleted": false,
+                            "title": "Tickets nearing SLA Breach",
+                            "id": 1500002444101
+                        },
+                        "rel": "automation"
+                    }
+                }
+            },
+            {
+                "id": 48564164454035,
+                "ticket_id": 28624,
+                "created_at": "2026-01-27T02:05:15Z",
+                "author_id": 42532841661459,
+                "metadata": {
+                    "system": {
+                        "client": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+                        "ip_address": "72.132.80.114",
+                        "location": "Palm Desert, CA, United States",
+                        "latitude": 33.7645,
+                        "longitude": -116.3369
+                    },
+                    "custom": {},
+                    "notifications_suppressed_for": [
+                        369660518314
+                    ]
+                },
+                "events": [
+                    {
+                        "id": 48564164454163,
+                        "type": "Comment",
+                        "author_id": 42532841661459,
+                        "body": "John,\n\nI will be joining you Google Meeting shortly.   Please provide the sensor UID or Serial Number along with the version you were upgrade from and to.\n\nThank you,\n\nMichael Hawks\nSenior Escalation Engineer\nCorelight\n\nFor customer support, please email support@corelight.com, call directly at +1 (336) 933-9335 or toll-free at +1(888) 547-9497, and select option 2.",
+                        "html_body": "<div class=\"zd-comment\" dir=\"auto\">John,<br>&nbsp;<br>I will be joining you Google Meeting shortly. &nbsp; Please provide the sensor UID or Serial Number along with the version you were upgrade from and to.<br>&nbsp;<br>Thank you,<br>\n\n<span class=\"collapse-signature\"></span><div class=\"signature\"><p dir=\"auto\">Michael Hawks<br>\nSenior Escalation Engineer<br>\nCorelight</p>\n<p dir=\"auto\">For customer support, please email <a href=\"mailto:support@corelight.com\" rel=\"noreferrer\">support@corelight.com</a>, call directly at +1 (336) 933-9335 or toll-free at +1(888) 547-9497, and select option 2.</p></div></div>",
+                        "plain_body": "John,\n&nbsp;\nI will be joining you Google Meeting shortly. &nbsp; Please provide the sensor UID or Serial Number along with the version you were upgrade from and to.\n&nbsp;\nThank you,\n\n\n  Michael Hawks\n\nSenior Escalation Engineer\n\nCorelight \n For customer support, please email support@corelight.com, call directly at +1 (336) 933-9335 or toll-free at +1(888) 547-9497, and select option 2.",
+                        "public": true,
+                        "attachments": [],
+                        "audit_id": 48564164454035
+                    },
+                    {
+                        "id": 48564164454291,
+                        "type": "Change",
+                        "value": "42532841661459",
+                        "field_name": "assignee_id",
+                        "previous_value": null
+                    },
+                    {
+                        "id": 48564164454419,
+                        "type": "Change",
+                        "value": "21541005",
+                        "field_name": "group_id",
+                        "previous_value": null
+                    },
+                    {
+                        "id": 48564164454547,
+                        "type": "Change",
+                        "value": "open",
+                        "field_name": "status",
+                        "previous_value": "new"
+                    },
+                    {
+                        "id": 48564164454675,
+                        "type": "Change",
+                        "value": "33079507945107",
+                        "field_name": "custom_status_id",
+                        "previous_value": "1500003687822"
+                    },
+                    {
+                        "id": 48564164454803,
+                        "type": "Change",
+                        "value": "120",
+                        "field_name": "25342538",
+                        "previous_value": null
+                    },
+                    {
+                        "id": 48564164454931,
+                        "type": "Change",
+                        "value": "120",
+                        "field_name": "25342548",
+                        "previous_value": null
+                    },
+                    {
+                        "id": 48564164455059,
+                        "type": "Change",
+                        "value": "0",
+                        "field_name": "13862394029459",
+                        "previous_value": null
+                    },
+                    {
+                        "id": 48564164455187,
+                        "type": "Change",
+                        "value": "0",
+                        "field_name": "13862379386515",
+                        "previous_value": null
+                    },
+                    {
+                        "id": 48564164455315,
+                        "type": "WebhookEvent",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "ES Support Notification",
+                                    "id": 360163888273,
+                                    "revision_id": 37
+                                },
+                                "rel": "trigger"
+                            }
+                        }
+                    },
+                    {
+                        "id": 48564164455443,
+                        "type": "Notification",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "Notify requester of comment update",
+                                    "id": 31889975,
+                                    "revision_id": 13
+                                },
+                                "rel": "trigger"
+                            }
+                        },
+                        "subject": "[{{ticket.account}}] Re: {{ticket.title}}",
+                        "body": "Your request ({{ticket.id}}) has been updated. To add additional comments, reply to this email.\n\nURL: {{ ticket.link }} \n\n<a href=\"https://zendesk.sweethawk.co/tickets/{{ticket.id}}/survey?user_token={{ticket.requester.custom_fields.survey_app_token}}&account_token=LM7nsw9n3xBM5D3JtHpSpAwm&locale={{ticket.requester.locale}}\">Please rate this ticket at anytime.</a>\n\n{{ticket.latest_public_comment_formatted}}",
+                        "recipients": [
+                            48444616584211
+                        ]
+                    },
+                    {
+                        "id": 48564164455571,
+                        "type": "Notification",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "Email notifications - refined",
+                                    "id": 81662668,
+                                    "revision_id": 6
+                                },
+                                "rel": "trigger"
+                            }
+                        },
+                        "subject": "[Zendesk] #{{ticket.id}} {{ current_user.name }} [{{ticket.organization.name}}]: {{ticket.title}}",
+                        "body": "\nURL: {{ ticket.link }} \n\n> Updated by {{ current_user.name }} ({{ user.organization.name }}) via {{ticket.via}}\n\n[Public: {{ ticket.latest_comment.is_public }}]\n\n{{ ticket.latest_comment }}\n\n> Ticket Summary\n\nStatus:       {{ ticket.status }}\nPriority:     {{ ticket.priority }}\nOrganization: {{ ticket.organization.name }}\nCreated:      {{ ticket.created_at_with_time }}\nUpdated:      {{ ticket.updated_at_with_time }}\nRequester:    {{ ticket.requester }}\nAssignee:     {{ ticket.assignee }}\n\nDescription:\n\n{{ ticket.description }}",
+                        "recipients": [
+                            430773265453,
+                            28005679964691,
+                            29040662961555,
+                            24252267984659,
+                            402431087914,
+                            33078861456787,
+                            1513330185261,
+                            42863113378579,
+                            27017298887,
+                            5789399187219,
+                            1503135047501,
+                            41736761496083,
+                            42532841661459,
+                            403803261994,
+                            40964132835731,
+                            12356854047763,
+                            31361388568979,
+                            22619145788,
+                            384899939533,
+                            39451214772755,
+                            44802362765075
+                        ]
+                    }
+                ],
+                "via": {
+                    "channel": "web",
+                    "source": {
+                        "from": {},
+                        "to": {},
+                        "rel": null
+                    }
+                }
+            },
+            {
+                "id": 48564869240211,
+                "ticket_id": 28624,
+                "created_at": "2026-01-27T02:51:14Z",
+                "author_id": 42532841661459,
+                "metadata": {
+                    "system": {
+                        "client": "Zendesk for iPhone/2.51.0 12742 Support",
+                        "ip_address": "72.132.80.114",
+                        "location": "Palm Desert, CA, United States",
+                        "latitude": 33.7645,
+                        "longitude": -116.3369
+                    },
+                    "custom": {},
+                    "notifications_suppressed_for": [
+                        369660518314
+                    ]
+                },
+                "events": [
+                    {
+                        "id": 48564869240339,
+                        "type": "Change",
+                        "value": [
+                            "ar_suggest_true",
+                            "enterprise_support",
+                            "less_than_2hrs_until_sla_breach",
+                            "not/applicable",
+                            "not_applicable",
+                            "p1",
+                            "pager_duty"
+                        ],
+                        "field_name": "tags",
+                        "previous_value": [
+                            "ar_suggest_true",
+                            "enterprise_support",
+                            "less_than_2hrs_until_sla_breach",
+                            "p1",
+                            "pager_duty"
+                        ]
+                    },
+                    {
+                        "id": 48564869240467,
+                        "type": "Change",
+                        "value": "not_applicable",
+                        "field_name": "4413461211283",
+                        "previous_value": null
+                    },
+                    {
+                        "id": 48564869240595,
+                        "type": "Change",
+                        "value": "not/applicable",
+                        "field_name": "4413461832851",
+                        "previous_value": null
+                    },
+                    {
+                        "id": 48564869240723,
+                        "type": "WebhookEvent",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "ES Support Notification",
+                                    "id": 360163888273,
+                                    "revision_id": 37
+                                },
+                                "rel": "trigger"
+                            }
+                        }
+                    },
+                    {
+                        "id": 48564869240851,
+                        "type": "Notification",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "Email notifications - refined",
+                                    "id": 81662668,
+                                    "revision_id": 6
+                                },
+                                "rel": "trigger"
+                            }
+                        },
+                        "subject": "[Zendesk] #{{ticket.id}} {{ current_user.name }} [{{ticket.organization.name}}]: {{ticket.title}}",
+                        "body": "\nURL: {{ ticket.link }} \n\n> Updated by {{ current_user.name }} ({{ user.organization.name }}) via {{ticket.via}}\n\n[Public: {{ ticket.latest_comment.is_public }}]\n\n{{ ticket.latest_comment }}\n\n> Ticket Summary\n\nStatus:       {{ ticket.status }}\nPriority:     {{ ticket.priority }}\nOrganization: {{ ticket.organization.name }}\nCreated:      {{ ticket.created_at_with_time }}\nUpdated:      {{ ticket.updated_at_with_time }}\nRequester:    {{ ticket.requester }}\nAssignee:     {{ ticket.assignee }}\n\nDescription:\n\n{{ ticket.description }}",
+                        "recipients": [
+                            430773265453,
+                            28005679964691,
+                            29040662961555,
+                            24252267984659,
+                            402431087914,
+                            33078861456787,
+                            1513330185261,
+                            42863113378579,
+                            27017298887,
+                            5789399187219,
+                            1503135047501,
+                            41736761496083,
+                            42532841661459,
+                            403803261994,
+                            40964132835731,
+                            12356854047763,
+                            31361388568979,
+                            22619145788,
+                            384899939533,
+                            39451214772755,
+                            44802362765075
+                        ]
+                    }
+                ],
+                "via": {
+                    "channel": "mobile",
+                    "source": {
+                        "from": {},
+                        "to": {},
+                        "rel": "mobile"
+                    }
+                }
+            },
+            {
+                "id": 48578960825107,
+                "ticket_id": 28624,
+                "created_at": "2026-01-27T16:02:07Z",
+                "author_id": 42532841661459,
+                "metadata": {
+                    "system": {
+                        "client": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+                        "ip_address": "72.132.80.114",
+                        "location": "Palm Desert, CA, United States",
+                        "latitude": 33.7645,
+                        "longitude": -116.3369
+                    },
+                    "custom": {}
+                },
+                "events": [
+                    {
+                        "id": 48578960825235,
+                        "type": "Comment",
+                        "author_id": 42532841661459,
+                        "body": "This was an was an escalation stress test.  Test is completed.  Closing ticket",
+                        "html_body": "<div class=\"zd-comment\" dir=\"auto\">This was an was an escalation stress test. &nbsp;Test is completed. &nbsp;Closing ticket<br></div>",
+                        "plain_body": "This was an was an escalation stress test. &nbsp;Test is completed. &nbsp;Closing ticket",
+                        "public": false,
+                        "attachments": [],
+                        "audit_id": 48578960825107
+                    },
+                    {
+                        "id": 48578960825363,
+                        "type": "Change",
+                        "value": "solved",
+                        "field_name": "status",
+                        "previous_value": "open"
+                    },
+                    {
+                        "id": 48578960825491,
+                        "type": "Change",
+                        "value": "1500003687902",
+                        "field_name": "custom_status_id",
+                        "previous_value": "33079507945107"
+                    },
+                    {
+                        "id": 48578960825619,
+                        "type": "Change",
+                        "value": [
+                            "ar_suggest_true",
+                            "enterprise_support",
+                            "less_than_2hrs_until_sla_breach",
+                            "ngs_issues",
+                            "not/applicable",
+                            "not_applicable",
+                            "p1",
+                            "pager_duty"
+                        ],
+                        "field_name": "tags",
+                        "previous_value": [
+                            "ar_suggest_true",
+                            "enterprise_support",
+                            "less_than_2hrs_until_sla_breach",
+                            "not/applicable",
+                            "not_applicable",
+                            "p1",
+                            "pager_duty"
+                        ]
+                    },
+                    {
+                        "id": 48578960825747,
+                        "type": "Change",
+                        "value": "ngs_issues",
+                        "field_name": "1900004644605",
+                        "previous_value": null
+                    },
+                    {
+                        "id": 48578960825875,
+                        "type": "Change",
+                        "value": "60",
+                        "field_name": "25342538",
+                        "previous_value": "120"
+                    },
+                    {
+                        "id": 48578960826003,
+                        "type": "Change",
+                        "value": "180",
+                        "field_name": "25342548",
+                        "previous_value": "120"
+                    },
+                    {
+                        "id": 48578960826131,
+                        "type": "WebhookEvent",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "ES Support Notification",
+                                    "id": 360163888273,
+                                    "revision_id": 37
+                                },
+                                "rel": "trigger"
+                            }
+                        }
+                    }
+                ],
+                "via": {
+                    "channel": "web",
+                    "source": {
+                        "from": {},
+                        "to": {},
+                        "rel": null
+                    }
+                }
+            },
+            {
+                "id": 48615379881747,
+                "ticket_id": 28624,
+                "created_at": "2026-01-28T17:01:58Z",
+                "author_id": -1,
+                "metadata": {
+                    "system": {},
+                    "custom": {}
+                },
+                "events": [
+                    {
+                        "id": 48615379881875,
+                        "type": "Notification",
+                        "subject": "Request #{{ticket.id}}: How would you rate the support you received from Corelight?",
+                        "body": "Hello {{ticket.requester.name}},\n\nWe'd love to hear what you think of our customer service. Please take a moment to answer one simple question:\n\n{{dc.survey_app_snippet}}\n\nHere's a reminder of what your ticket was about:\n\n{{ticket.comments_formatted}}\n",
+                        "recipients": [
+                            48444616584211
+                        ]
+                    },
+                    {
+                        "id": 48615379882003,
+                        "type": "Change",
+                        "value": "offered",
+                        "field_name": "satisfaction_score",
+                        "previous_value": "unoffered"
+                    },
+                    {
+                        "id": 48615379882131,
+                        "type": "WebhookEvent",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "ES Support Notification",
+                                    "id": 360163888273,
+                                    "revision_id": 37
+                                },
+                                "rel": "trigger"
+                            }
+                        }
+                    }
+                ],
+                "via": {
+                    "channel": "rule",
+                    "source": {
+                        "to": {},
+                        "from": {
+                            "deleted": false,
+                            "title": "Request customer satisfaction rating (System Automation)",
+                            "id": 31606289
+                        },
+                        "rel": "automation"
+                    }
+                }
+            },
+            {
+                "id": 48784811028243,
+                "ticket_id": 28624,
+                "created_at": "2026-02-03T17:01:20Z",
+                "author_id": -1,
+                "metadata": {
+                    "system": {},
+                    "custom": {},
+                    "notifications_suppressed_for": [
+                        369660518314
+                    ]
+                },
+                "events": [
+                    {
+                        "id": 48784811028371,
+                        "type": "Change",
+                        "value": "closed",
+                        "field_name": "status",
+                        "previous_value": "solved"
+                    },
+                    {
+                        "id": 48784811028499,
+                        "type": "WebhookEvent",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "ES Support Notification",
+                                    "id": 360163888273,
+                                    "revision_id": 37
+                                },
+                                "rel": "trigger"
+                            }
+                        }
+                    },
+                    {
+                        "id": 48784811028627,
+                        "type": "Notification",
+                        "via": {
+                            "channel": "rule",
+                            "source": {
+                                "from": {
+                                    "deleted": false,
+                                    "title": "Email notifications - refined",
+                                    "id": 81662668,
+                                    "revision_id": 6
+                                },
+                                "rel": "trigger"
+                            }
+                        },
+                        "subject": "[Zendesk] #{{ticket.id}} {{ current_user.name }} [{{ticket.organization.name}}]: {{ticket.title}}",
+                        "body": "\nURL: {{ ticket.link }} \n\n> Updated by {{ current_user.name }} ({{ user.organization.name }}) via {{ticket.via}}\n\n[Public: {{ ticket.latest_comment.is_public }}]\n\n{{ ticket.latest_comment }}\n\n> Ticket Summary\n\nStatus:       {{ ticket.status }}\nPriority:     {{ ticket.priority }}\nOrganization: {{ ticket.organization.name }}\nCreated:      {{ ticket.created_at_with_time }}\nUpdated:      {{ ticket.updated_at_with_time }}\nRequester:    {{ ticket.requester }}\nAssignee:     {{ ticket.assignee }}\n\nDescription:\n\n{{ ticket.description }}",
+                        "recipients": [
+                            430773265453,
+                            28005679964691,
+                            29040662961555,
+                            24252267984659,
+                            402431087914,
+                            33078861456787,
+                            1513330185261,
+                            42863113378579,
+                            27017298887,
+                            5789399187219,
+                            1503135047501,
+                            41736761496083,
+                            42532841661459,
+                            403803261994,
+                            40964132835731,
+                            12356854047763,
+                            31361388568979,
+                            22619145788,
+                            384899939533,
+                            39451214772755,
+                            44802362765075
+                        ]
+                    }
+                ],
+                "via": {
+                    "channel": "rule",
+                    "source": {
+                        "to": {},
+                        "from": {
+                            "deleted": false,
+                            "title": "Close ticket 5 business days after status is set to solved",
+                            "id": 31890045
+                        },
+                        "rel": "automation"
+                    }
+                }
+            }
+        ],
+        "comments": [
+            {
+                "id": 48563919494547,
+                "type": "Comment",
+                "author_id": 48444616584211,
+                "body": "We are attempting to upgrade our sensors overnight and one of our sensors has given us an error that says \"NGS deployment error. contact corelight support\" and appears unhealthy. We are in a Google meeting here if you are able to join when available.\r\n\r\nhttps://meet.google.com/bsj-yahy-pwo",
+                "html_body": "<div class=\"zd-comment\" dir=\"auto\"><p dir=\"auto\">We are attempting to upgrade our sensors overnight and one of our sensors has given us an error that says \"NGS deployment error. contact corelight support\" and appears unhealthy. We are in a Google meeting here if you are able to join when available.</p>\n\n<p dir=\"auto\"><a href=\"https://meet.google.com/bsj-yahy-pwo\" target=\"_blank\" rel=\"nofollow noreferrer\">https://meet.google.com/bsj-yahy-pwo</a></p></div>",
+                "plain_body": "We are attempting to upgrade our sensors overnight and one of our sensors has given us an error that says \"NGS deployment error. contact corelight support\" and appears unhealthy. We are in a Google meeting here if you are able to join when available. \n\n https://meet.google.com/bsj-yahy-pwo",
+                "public": true,
+                "attachments": [],
+                "audit_id": 48563919494419,
+                "via": {
+                    "channel": "web",
+                    "source": {
+                        "from": {},
+                        "to": {},
+                        "rel": null
+                    }
+                },
+                "created_at": "2026-01-27T01:49:24Z",
+                "metadata": {
+                    "system": {
+                        "client": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+                        "ip_address": "24.113.185.128",
+                        "location": "Port Orchard, WA, United States",
+                        "latitude": 47.5329,
+                        "longitude": -122.5801
+                    },
+                    "custom": {},
+                    "notifications_suppressed_for": [
+                        369660518314
+                    ]
+                }
+            },
+            {
+                "id": 48564164454163,
+                "type": "Comment",
+                "author_id": 42532841661459,
+                "body": "John,\n\nI will be joining you Google Meeting shortly.   Please provide the sensor UID or Serial Number along with the version you were upgrade from and to.\n\nThank you,\n\nMichael Hawks\nSenior Escalation Engineer\nCorelight\n\nFor customer support, please email support@corelight.com, call directly at +1 (336) 933-9335 or toll-free at +1(888) 547-9497, and select option 2.",
+                "html_body": "<div class=\"zd-comment\" dir=\"auto\">John,<br>&nbsp;<br>I will be joining you Google Meeting shortly. &nbsp; Please provide the sensor UID or Serial Number along with the version you were upgrade from and to.<br>&nbsp;<br>Thank you,<br>\n\n<span class=\"collapse-signature\"></span><div class=\"signature\"><p dir=\"auto\">Michael Hawks<br>\nSenior Escalation Engineer<br>\nCorelight</p>\n<p dir=\"auto\">For customer support, please email <a href=\"mailto:support@corelight.com\" rel=\"noreferrer\">support@corelight.com</a>, call directly at +1 (336) 933-9335 or toll-free at +1(888) 547-9497, and select option 2.</p></div></div>",
+                "plain_body": "John,\n&nbsp;\nI will be joining you Google Meeting shortly. &nbsp; Please provide the sensor UID or Serial Number along with the version you were upgrade from and to.\n&nbsp;\nThank you,\n\n\n  Michael Hawks\n\nSenior Escalation Engineer\n\nCorelight \n For customer support, please email support@corelight.com, call directly at +1 (336) 933-9335 or toll-free at +1(888) 547-9497, and select option 2.",
+                "public": true,
+                "attachments": [],
+                "audit_id": 48564164454035,
+                "via": {
+                    "channel": "web",
+                    "source": {
+                        "from": {},
+                        "to": {},
+                        "rel": null
+                    }
+                },
+                "created_at": "2026-01-27T02:05:15Z",
+                "metadata": {
+                    "system": {
+                        "client": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+                        "ip_address": "72.132.80.114",
+                        "location": "Palm Desert, CA, United States",
+                        "latitude": 33.7645,
+                        "longitude": -116.3369
+                    },
+                    "custom": {},
+                    "notifications_suppressed_for": [
+                        369660518314
+                    ]
+                }
+            },
+            {
+                "id": 48578960825235,
+                "type": "Comment",
+                "author_id": 42532841661459,
+                "body": "This was an was an escalation stress test.  Test is completed.  Closing ticket",
+                "html_body": "<div class=\"zd-comment\" dir=\"auto\">This was an was an escalation stress test. &nbsp;Test is completed. &nbsp;Closing ticket<br></div>",
+                "plain_body": "This was an was an escalation stress test. &nbsp;Test is completed. &nbsp;Closing ticket",
+                "public": false,
+                "attachments": [],
+                "audit_id": 48578960825107,
+                "via": {
+                    "channel": "web",
+                    "source": {
+                        "from": {},
+                        "to": {},
+                        "rel": null
+                    }
+                },
+                "created_at": "2026-01-27T16:02:07Z",
+                "metadata": {
+                    "system": {
+                        "client": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+                        "ip_address": "72.132.80.114",
+                        "location": "Palm Desert, CA, United States",
+                        "latitude": 33.7645,
+                        "longitude": -116.3369
+                    },
+                    "custom": {}
+                }
+            }
+        ]
     }
 ]
