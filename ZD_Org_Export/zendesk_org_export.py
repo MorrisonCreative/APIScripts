@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Simple Zendesk Organization Exporter
-Exports organization IDs and custom field 19438976978839 from Zendesk to a CSV file.
+Exports organization IDs and short_name field from Zendesk to a CSV file.
 """
 
 import requests
@@ -38,11 +38,12 @@ def fetch_all_organizations():
         data = response.json()
         organizations = data.get('organizations', [])
 
-        # Extract org ID and custom field
+        # Extract org ID and short_name field
         for org in organizations:
+            org_fields = org.get('organization_fields', {})
             org_data = {
                 'id': org['id'],
-                'custom_field_19438976978839': org.get('organization_fields', {}).get('19438976978839', '')
+                'short_name': org_fields.get('short_name', '')
             }
             all_orgs.append(org_data)
 
@@ -58,10 +59,10 @@ def export_to_csv(orgs, filename):
     """Export organization data to CSV file."""
     with open(filename, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(['organization_id', 'custom_field_19438976978839'])  # Header
+        writer.writerow(['organization_id', 'short_name'])  # Header
 
         for org in orgs:
-            writer.writerow([org['id'], org['custom_field_19438976978839']])
+            writer.writerow([org['id'], org['short_name']])
 
     print(f"\n✓ Exported {len(orgs)} organizations to {filename}")
 
