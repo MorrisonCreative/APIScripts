@@ -17,7 +17,9 @@ from zendesk_exporter import (
     generate_filename,
     detect_credential_sets,
     normalize_credential_set,
-    load_credentials
+    load_credentials,
+    flatten_ticket_for_csv,
+    export_to_csv
 )
 
 class TestZendeskAPIClient(unittest.TestCase):
@@ -482,6 +484,100 @@ class TestFilenameGeneration(unittest.TestCase):
         self.assertIn("2024-01-01_to_2024-01-31", filename)
         self.assertIn("P1", filename)
         self.assertIn("org_12345", filename)
+
+    def test_generate_filename_csv_format(self):
+        filename = generate_filename(start_date="2024-01-01", end_date="2024-01-31", file_format="csv")
+        self.assertTrue(filename.endswith(".csv"))
+
+    def test_generate_filename_json_format(self):
+        filename = generate_filename(start_date="2024-01-01", end_date="2024-01-31", file_format="json")
+        self.assertTrue(filename.endswith(".json"))
+
+
+class TestCSVExport(unittest.TestCase):
+
+    def test_flatten_ticket_basic_fields(self):
+        ticket = {
+            'id': 12345,
+            'subject': 'Test ticket',
+            'status': 'open',
+            'priority': 'high',
+            'created_at': '2024-01-15T10:30:00Z'
+        }
+        flattened = flatten_ticket_for_csv(ticket)
+        self.assertEqual(flattened['id'], 12345)
+        self.assertEqual(flattened['subject'], 'Test ticket')
+        self.assertEqual(flattened['status'], 'open')
+
+    def test_flatten_ticket_with_custom_priority(self):
+        ticket = {
+            'id': 12345,
+            'subject': 'Test',
+            'custom_fields': [
+                {'id': 360047533253, 'value': 'P1'}
+            ]
+        }
+        flattened = flatten_ticket_for_csv(ticket)
+        self.assertEqual(flattened['ticket_priority'], 'P1')
+
+    def test_flatten_ticket_with_tags(self):
+        ticket = {
+            'id': 12345,
+            'tags': ['urgent', 'customer', 'billing']
+        }
+        flattened = flatten_ticket_for_csv(ticket)
+        self.assertEqual(flattened['tags'], 'urgent,customer,billing')
+
+    def test_flatten_ticket_with_history_counts(self):
+        ticket = {
+            'id': 12345,
+            'audits': [{'id': 1}, {'id': 2}, {'id': 3}],
+            'comments': [{'id': 1}, {'id': 2}]
+        }
+        flattened = flatten_ticket_for_csv(ticket)
+        self.assertEqual(flattened['audit_count'], 3)
+        self.assertEqual(flattened['comment_count'], 2)
+
+    def test_export_to_csv_creates_file(self):
+        import tempfile
+        import csv as csv_module
+
+        tickets = [
+            {'id': 1, 'subject': 'Ticket 1', 'status': 'open'},
+            {'id': 2, 'subject': 'Ticket 2', 'status': 'closed'}
+        ]
+
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+            temp_path = f.name
+
+        try:
+            export_to_csv(tickets, temp_path)
+
+            # Verify file was created and has content
+            with open(temp_path, 'r', encoding='utf-8') as f:
+                reader = csv_module.DictReader(f)
+                rows = list(reader)
+                self.assertEqual(len(rows), 2)
+                self.assertEqual(rows[0]['id'], '1')
+                self.assertEqual(rows[0]['subject'], 'Ticket 1')
+        finally:
+            os.remove(temp_path)
+
+    def test_export_to_csv_empty_tickets(self):
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+            temp_path = f.name
+
+        try:
+            export_to_csv([], temp_path)
+
+            # Verify file was created with headers only
+            with open(temp_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                self.assertEqual(len(lines), 1)  # Header only
+        finally:
+            os.remove(temp_path)
 
 
 class TestCredentialManagement(unittest.TestCase):

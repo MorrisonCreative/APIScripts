@@ -17,13 +17,16 @@
 
 ### Part III: Implementation
 - [Chapter 7: Configuration and User Input](#chapter-7-configuration-and-user-input)
-- [Chapter 8: Data Processing and Pagination](#chapter-8-data-processing-and-pagination)
-- [Chapter 9: Error Handling Strategies](#chapter-9-error-handling-strategies)
+- [Chapter 8: Command-Line Arguments with argparse](#chapter-8-command-line-arguments-with-argparse)
+- [Chapter 9: Data Processing and Pagination](#chapter-9-data-processing-and-pagination)
+- [Chapter 10: Error Handling Strategies](#chapter-10-error-handling-strategies)
 
 ### Part IV: Advanced Topics
-- [Chapter 10: Rate Limiting and Performance](#chapter-10-rate-limiting-and-performance)
-- [Chapter 11: File I/O and Data Serialization](#chapter-11-file-io-and-data-serialization)
-- [Chapter 12: Production Best Practices](#chapter-12-production-best-practices)
+- [Chapter 11: Credential Management and Multi-Environment Support](#chapter-11-credential-management-and-multi-environment-support)
+- [Chapter 12: Advanced Filtering and Search](#chapter-12-advanced-filtering-and-search)
+- [Chapter 13: Rate Limiting and Performance](#chapter-13-rate-limiting-and-performance)
+- [Chapter 14: File I/O and Data Serialization](#chapter-14-file-io-and-data-serialization)
+- [Chapter 15: Production Best Practices](#chapter-15-production-best-practices)
 
 ### Appendices
 - [Appendix A: Complete Code Listing](#appendix-a-complete-code-listing)
@@ -54,25 +57,41 @@ By studying this codebase, you will gain practical knowledge in:
 - HTTP requests and RESTful API communication
 - Authentication mechanisms (HTTP Basic Auth with API tokens)
 - Pagination strategies for handling large datasets
-- Environment variable configuration
+- Command-line argument parsing with argparse
+- Configuration hierarchy (CLI > env vars > prompts)
 
 **Advanced Techniques:**
+- Multi-environment credential management
+- Dynamic query building for flexible filtering
+- Custom field filtering in APIs
 - Rate limiting to respect API quotas
 - Graceful error handling with multiple exception types
-- Context managers for resource management
+- Intelligent auto-selection and validation logic
 - Logging strategies for production applications
 
 ### 1.3 The Problem Domain
 
-**Scenario:** You work for a company that uses Zendesk for customer support. Management needs to export all support tickets for a specific customer organization for analysis, backup, or migration purposes. The Zendesk API provides access to this data, but it's spread across multiple endpoints with pagination, rate limits, and complex response structures.
+**Scenario:** You work for a company that uses Zendesk for customer support. Management needs flexible ticket export capabilities for analysis, backup, reporting, or migration purposes. They need to:
+- Export all tickets for specific customer organizations
+- Pull tickets from specific timeframes for quarterly reports
+- Filter high-priority tickets for escalation analysis
+- Work with multiple Zendesk instances (sandbox and production)
 
-**Challenge:** Create a robust script that:
-1. Authenticates securely with Zendesk's API
-2. Fetches all tickets for an organization (handling pagination)
-3. Optionally enriches tickets with complete audit and comment history
-4. Handles network errors, rate limits, and invalid input gracefully
-5. Exports data in a structured JSON format
-6. Provides clear feedback through logging
+The Zendesk API provides access to this data, but it's spread across multiple endpoints with pagination, rate limits, complex query syntax, and custom field handling.
+
+**Challenge:** Create a robust, flexible script that:
+1. Authenticates securely with Zendesk's API (supporting multiple credential sets)
+2. Supports multiple export modes:
+   - By organization (all tickets for a customer)
+   - By timeframe (all tickets in a date range)
+   - By priority (using custom field filtering)
+   - Or any combination of the above
+3. Provides both CLI arguments and environment variable configuration
+4. Optionally enriches tickets with complete audit and comment history
+5. Handles network errors, rate limits, and invalid input gracefully
+6. Exports data in a structured JSON format with metadata
+7. Generates descriptive filenames based on export parameters
+8. Provides clear feedback through comprehensive logging
 
 ### 1.4 Prerequisites
 
@@ -99,6 +118,8 @@ This guide is structured like a textbook:
 **Hands-On Learning:** We recommend having the code open alongside this guide. Try running the script, modifying values, and observing the results.
 
 **Practice Exercises:** Each chapter ends with exercises to reinforce concepts (where applicable).
+
+**Note on Line Numbers:** This guide references specific line numbers for illustration. As the script evolves, exact line numbers may shift. Focus on the concepts and patterns rather than precise line locations. Use your editor's search function to locate specific functions or code blocks.
 
 ---
 
@@ -1481,7 +1502,7 @@ This supports both automation (scripts) and manual use (interactive).
 
 ---
 
-## Chapter 8: Data Processing and Pagination
+## Chapter 9: Data Processing and Pagination
 
 ### 8.1 The Pagination Problem
 
@@ -1700,7 +1721,7 @@ Result: Some tickets fully enriched, some only have metadata, but none are lost.
 
 ---
 
-## Chapter 9: Error Handling Strategies
+## Chapter 10: Error Handling Strategies
 
 ### 9.1 Why Error Handling Matters
 
@@ -2134,7 +2155,7 @@ with open(file, "w") as f:
 
 # Part IV: Advanced Topics
 
-## Chapter 10: Rate Limiting and Performance
+## Chapter 13: Rate Limiting and Performance
 
 ### 10.1 What is Rate Limiting?
 
@@ -2314,7 +2335,7 @@ for index, item in enumerate(items, 1):
 
 ---
 
-## Chapter 11: File I/O and Data Serialization
+## Chapter 14: File I/O and Data Serialization
 
 ### 11.1 File Operations in Python
 
@@ -2686,7 +2707,7 @@ os.rename("tickets.json.tmp", "tickets.json")
 
 ---
 
-## Chapter 12: Production Best Practices
+## Chapter 15: Production Best Practices
 
 ### 12.1 Security Considerations
 
@@ -3435,6 +3456,659 @@ json.decoder.JSONDecodeError: Expecting value: line 1 column 1
 
 ---
 
+## Chapter 8: Command-Line Arguments with argparse
+
+### 8.1 Introduction to argparse
+
+The script uses Python's `argparse` module to provide a professional CLI interface. This allows users to pass options directly when running the script, rather than relying solely on environment variables or prompts.
+
+**Benefits:**
+- Self-documenting (automatic help text)
+- Type validation (e.g., ensuring integers are integers)
+- Choice restriction (e.g., only allowing 1 or 2 for credential-set)
+- Flexible usage patterns
+
+### 8.2 Basic Structure
+
+```python
+def parse_arguments():
+    import argparse
+    parser = argparse.ArgumentParser(
+        description='Export Zendesk tickets by organization, timeframe, or priority'
+    )
+
+    parser.add_argument('--start-date', help='Start date (YYYY-MM-DD)')
+    parser.add_argument('--credential-set', type=int, choices=[1, 2])
+
+    return parser.parse_args()
+```
+
+**Key Components:**
+- `ArgumentParser()` - Creates parser object
+- `add_argument()` - Defines each CLI option
+- `parse_args()` - Processes sys.argv and returns namespace
+
+### 8.3 Argument Types
+
+**String Arguments (default):**
+```python
+parser.add_argument('--start-date', help='Start date (YYYY-MM-DD)')
+# Usage: --start-date 2024-01-01
+```
+
+**Integer Arguments:**
+```python
+parser.add_argument('--credential-set', type=int, choices=[1, 2])
+# Usage: --credential-set 2
+# Automatically validates it's an integer and either 1 or 2
+```
+
+**Boolean Flags:**
+```python
+parser.add_argument('--no-history', action='store_true')
+# Usage: --no-history (sets to True)
+# Omit flag (defaults to False)
+```
+
+### 8.4 Choices and Validation
+
+```python
+parser.add_argument('--date-field', default='created',
+                   choices=['created', 'updated', 'solved'])
+```
+
+**How It Works:**
+- `choices` - Restricts input to specified values
+- `default` - Value used if argument not provided
+- Automatic error if invalid choice
+
+**Example:**
+```bash
+$ python zendesk_exporter.py --date-field invalid
+error: argument --date-field: invalid choice: 'invalid'
+(choose from 'created', 'updated', 'solved')
+```
+
+### 8.5 Help Text Generation
+
+```python
+parser = argparse.ArgumentParser(
+    description='Export Zendesk tickets',
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    epilog='''Examples:
+  %(prog)s --organization-id 12345
+  %(prog)s --start-date 2024-01-01 --end-date 2024-01-31
+    '''
+)
+```
+
+**Automatic Help:**
+```bash
+$ python zendesk_exporter.py --help
+# Displays formatted help with all arguments and examples
+```
+
+### 8.6 Priority Order: CLI > Env Vars > Prompts
+
+The script merges configuration from multiple sources:
+
+```python
+# CLI arguments (highest priority)
+args = parse_arguments()
+
+# Environment variables (medium priority)
+start_date = args.start_date or os.getenv("START_DATE")
+
+# Interactive prompts (lowest priority, fallback)
+if not start_date:
+    start_date = input("Enter start date: ")
+```
+
+**Hierarchy:**
+1. CLI argument (if provided)
+2. Environment variable (if CLI not provided)
+3. User prompt (if neither above provided)
+
+---
+
+## Chapter 11: Credential Management and Multi-Environment Support
+
+### 11.1 The Multi-Credential Challenge
+
+Real-world scenarios require working with multiple Zendesk instances:
+- **Development/Testing:** Sandbox environment for testing
+- **Production:** Live customer data
+- **Multiple Clients:** Different Zendesk accounts per customer
+- **Staging:** Pre-production validation
+
+**Problem:** Constantly switching environment variables is error-prone and tedious.
+
+**Solution:** Support multiple credential sets with intelligent auto-selection.
+
+### 11.2 Credential Set Architecture
+
+**Set 1 (Primary):**
+```bash
+ZENDESK_SUBDOMAIN=sandbox
+ZENDESK_EMAIL=test@example.com
+ZENDESK_API_TOKEN=token123
+```
+
+**Set 2 (Secondary):**
+```bash
+ZENDESK_SUBDOMAIN_2=production
+ZENDESK_EMAIL_2=api@example.com
+ZENDESK_API_TOKEN_2=token456
+```
+
+**Naming Convention:** Suffix `_2` indicates second set. Clear, simple, scalable to future expansion.
+
+### 11.3 Detection Logic
+
+```python
+def detect_credential_sets():
+    set1 = {
+        'subdomain': os.getenv('ZENDESK_SUBDOMAIN'),
+        'email': os.getenv('ZENDESK_EMAIL'),
+        'api_token': os.getenv('ZENDESK_API_TOKEN')
+    }
+
+    set2 = {
+        'subdomain': os.getenv('ZENDESK_SUBDOMAIN_2'),
+        'email': os.getenv('ZENDESK_EMAIL_2'),
+        'api_token': os.getenv('ZENDESK_API_TOKEN_2')
+    }
+
+    set1_complete = all(set1.values())
+    set2_complete = all(set2.values())
+
+    return set1_complete, set2_complete, set1, set2
+```
+
+**Key Concept:** A credential set is only "complete" if all three values are present.
+
+### 11.4 Auto-Selection Logic
+
+```python
+if credential_set is None:
+    if set1_complete and not set2_complete:
+        credential_set = 1
+        logging.info("Auto-selected credential set 1")
+    elif set2_complete and not set1_complete:
+        credential_set = 2
+        logging.info("Auto-selected credential set 2")
+    elif set1_complete and set2_complete:
+        logging.error("Multiple sets detected. Please specify...")
+        sys.exit(1)
+```
+
+**Decision Tree:**
+1. Only Set 1 configured → Use Set 1 (backward compatible)
+2. Only Set 2 configured → Use Set 2
+3. Both configured, no selection → Error (ambiguous)
+4. Neither configured → Error (no credentials)
+
+### 11.5 Normalization for User Convenience
+
+```python
+def normalize_credential_set(value):
+    str_value = str(value).strip().lower()
+
+    if str_value in ['1', 'primary', 'first', 'default']:
+        return 1
+    elif str_value in ['2', 'secondary', 'second', 'alternate']:
+        return 2
+    else:
+        raise ValueError(f"Invalid credential set: {value}")
+```
+
+**Accepts Multiple Formats:**
+- Numeric: `1`, `2`
+- Named: `primary`, `secondary`
+- Descriptive: `first`, `second`, `default`, `alternate`
+
+**Case-Insensitive:** `PRIMARY`, `Primary`, `primary` all work.
+
+### 11.6 Security Logging
+
+```python
+logging.info(f"Using credential set {selected_set}: {SUBDOMAIN} ({EMAIL})")
+```
+
+**What's Logged:** Subdomain and email (safe, identifying information)
+**What's NOT Logged:** API tokens (sensitive, never logged)
+
+**Why:** Helps identify which credentials are active without exposing secrets.
+
+### 11.7 Practical Usage Examples
+
+**Scenario 1: Single Environment (Backward Compatible)**
+```bash
+export ZENDESK_SUBDOMAIN="mycompany"
+export ZENDESK_EMAIL="admin@example.com"
+export ZENDESK_API_TOKEN="token123"
+
+python zendesk_exporter.py --organization-id 12345
+# Auto-selects Set 1, no changes needed
+```
+
+**Scenario 2: Multiple Environments**
+```bash
+# Configure both
+export ZENDESK_SUBDOMAIN="sandbox"
+export ZENDESK_EMAIL="test@example.com"
+export ZENDESK_API_TOKEN="token123"
+
+export ZENDESK_SUBDOMAIN_2="production"
+export ZENDESK_EMAIL_2="api@example.com"
+export ZENDESK_API_TOKEN_2="token456"
+
+# Test in sandbox
+python zendesk_exporter.py --credential-set 1 --organization-id 12345
+
+# Deploy to production
+python zendesk_exporter.py --credential-set 2 --organization-id 12345
+```
+
+**Scenario 3: Environment Variable Selection**
+```bash
+export ZENDESK_CREDENTIAL_SET=2
+python zendesk_exporter.py --organization-id 12345
+# Uses Set 2 without CLI argument
+```
+
+---
+
+## Chapter 12: Advanced Filtering and Search
+
+### 12.1 Custom Field Priority Filtering
+
+**Business Context:** The script supports filtering by a custom "Ticket Priority" field with values P1 (highest) through P4 (lowest).
+
+**Custom Field ID:** `360047533253`
+
+**Why Custom Fields Matter:**
+- Zendesk has built-in priority field (urgent, high, normal, low)
+- Organizations often need their own priority scheme
+- Custom fields allow business-specific categorization
+
+### 12.2 Query Builder Pattern
+
+```python
+def build_search_query(organization_id=None, start_date=None,
+                      end_date=None, date_field="created",
+                      ticket_priorities=None):
+    query_parts = ["type:ticket"]
+
+    if organization_id:
+        query_parts.append(f"organization_id:{organization_id}")
+
+    if start_date and end_date:
+        query_parts.append(f"{date_field}>={start_date}")
+        query_parts.append(f"{date_field}<={end_date}")
+
+    if ticket_priorities:
+        priority_queries = [f"custom_field_360047533253:{p}"
+                           for p in ticket_priorities]
+        query_parts.append(f"({' '.join(priority_queries)})")
+
+    return " ".join(query_parts)
+```
+
+**Modular Design:** Each filter is independent, enabling any combination.
+
+### 12.3 Zendesk Search Query Syntax
+
+**Example Query:**
+```
+type:ticket created>=2024-01-01 created<=2024-01-31 (custom_field_360047533253:P1 custom_field_360047533253:P2)
+```
+
+**Components:**
+- `type:ticket` - Only search tickets (not users, orgs)
+- `created>=2024-01-01` - Date range start
+- `created<=2024-01-31` - Date range end
+- `(...)` - Parentheses for OR logic on priorities
+- `custom_field_ID:value` - Custom field filtering
+
+### 12.4 Export Modes
+
+**Mode 1: Organization Only**
+```bash
+python zendesk_exporter.py --organization-id 12345
+# All tickets for one organization
+```
+
+**Mode 2: Timeframe Only**
+```bash
+python zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31
+# All tickets in January 2024
+```
+
+**Mode 3: Priority Filter**
+```bash
+python zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 --priorities P1,P2
+# Only P1 and P2 tickets from January
+```
+
+**Mode 4: Combined**
+```bash
+python zendesk_exporter.py --organization-id 12345 --start-date 2024-01-01 --end-date 2024-01-31 --priorities P1
+# P1 tickets from specific org in January
+```
+
+### 12.5 Date Field Options
+
+**Three date fields available:**
+- `created` - When ticket was created (default)
+- `updated` - When ticket was last modified
+- `solved` - When ticket was marked as solved
+
+**Example:**
+```bash
+# Tickets solved in Q1
+python zendesk_exporter.py --date-field solved --start-date 2024-01-01 --end-date 2024-03-31
+```
+
+**Use Cases:**
+- `created` - New tickets in timeframe
+- `updated` - Active tickets in timeframe
+- `solved` - Closed tickets in timeframe (resolution metrics)
+
+### 12.6 Dynamic Filename Generation
+
+```python
+def generate_filename(start_date=None, end_date=None,
+                     priorities=None, organization_id=None):
+    parts = ["tickets"]
+
+    if start_date and end_date:
+        parts.append(f"{start_date}_to_{end_date}")
+    if priorities:
+        parts.append("-".join(priorities))
+    if organization_id:
+        parts.append(f"org_{organization_id}")
+
+    parts.append(timestamp)
+    return "_".join(parts) + ".json"
+```
+
+**Generated Names:**
+- `tickets_2024-01-01_to_2024-01-31_20240315_143022.json`
+- `tickets_2024-01-01_to_2024-01-31_P1-P2_20240315_143022.json`
+- `tickets_org_12345_20240315_143022.json`
+
+**Benefits:** Self-documenting, sortable, prevents overwrites (timestamp).
+
+---
+
+## Chapter 16: Multiple Output Formats - JSON vs CSV
+
+### 16.1 Why Multiple Formats?
+
+Different use cases require different data formats:
+
+**JSON Format:**
+- Preserves complete data structure
+- Maintains nested relationships (audits, comments)
+- Machine-readable for automated processing
+- Default format for complete data preservation
+
+**CSV Format:**
+- Human-readable in spreadsheet applications
+- Easy to analyze in Excel, Google Sheets, or Tableau
+- Flat structure for simple filtering and sorting
+- Ideal for reporting and business analysis
+
+### 16.2 Format Selection
+
+**CLI Argument:**
+```bash
+python zendesk_exporter.py --format csv --start-date 2024-01-01 --end-date 2024-01-31
+```
+
+**Environment Variable:**
+```bash
+export OUTPUT_FORMAT=csv
+python zendesk_exporter.py --organization-id 12345
+```
+
+**Default:** JSON (if not specified)
+
+### 16.3 The Flattening Challenge
+
+**Problem:** Zendesk ticket data is hierarchical:
+```json
+{
+  "id": 12345,
+  "subject": "Help needed",
+  "tags": ["urgent", "billing", "customer"],
+  "custom_fields": [
+    {"id": 360047533253, "value": "P1"}
+  ],
+  "audits": [
+    {"id": 1, "created_at": "...", "events": [...]},
+    {"id": 2, "created_at": "...", "events": [...]}
+  ]
+}
+```
+
+**CSV Requires Flat Structure:** One row per ticket, one value per cell.
+
+### 16.4 Flattening Implementation
+
+```python
+def flatten_ticket_for_csv(ticket):
+    flattened = {
+        'id': ticket.get('id'),
+        'subject': ticket.get('subject', ''),
+        'status': ticket.get('status'),
+        # ... other scalar fields
+    }
+
+    # Handle arrays - convert to comma-separated string
+    flattened['tags'] = ','.join(ticket.get('tags', []))
+
+    # Extract specific custom field
+    for field in ticket.get('custom_fields', []):
+        if field.get('id') == int(PRIORITY_FIELD_ID):
+            flattened['ticket_priority'] = field.get('value', '')
+
+    # Summarize nested structures with counts
+    if 'audits' in ticket:
+        flattened['audit_count'] = len(ticket.get('audits', []))
+    if 'comments' in ticket:
+        flattened['comment_count'] = len(ticket.get('comments', []))
+
+    return flattened
+```
+
+**Key Techniques:**
+- **Scalar fields** - Direct mapping (id → id)
+- **Arrays** - Join with delimiter (tags → "urgent,billing,customer")
+- **Nested objects** - Extract specific values (custom_fields → ticket_priority)
+- **Nested arrays** - Aggregate to counts (audits → audit_count)
+
+### 16.5 CSV Output Structure
+
+**Columns Included:**
+
+| Category | Fields |
+|----------|--------|
+| Identifiers | id, url |
+| Core Data | subject, description, status, priority, type |
+| Timestamps | created_at, updated_at |
+| Relationships | organization_id, requester_id, assignee_id, submitter_id, group_id |
+| Custom Fields | ticket_priority (P1-P4) |
+| Tags | tags (comma-separated) |
+| History Summary | audit_count, comment_count |
+
+**What's NOT in CSV:**
+- Full audit event details (status change history)
+- Complete comment text and metadata
+- Nested custom field arrays
+- Attachment information
+
+### 16.6 Using Python's csv Module
+
+```python
+def export_to_csv(tickets, output_path):
+    if not tickets:
+        logging.warning("No tickets to export to CSV")
+        # Create empty CSV with headers
+        with open(output_path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=[...])
+            writer.writeheader()
+        return
+
+    # Flatten all tickets
+    flattened_tickets = [flatten_ticket_for_csv(ticket) for ticket in tickets]
+
+    # Get all unique field names
+    fieldnames = set()
+    for ticket in flattened_tickets:
+        fieldnames.update(ticket.keys())
+    fieldnames = sorted(fieldnames)
+
+    # Write to CSV
+    with open(output_path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(flattened_tickets)
+```
+
+**Important Parameters:**
+- `newline=''` - Required for csv module to handle line endings correctly
+- `encoding='utf-8'` - Support international characters
+- `DictWriter` - Easier than manual row construction
+- `fieldnames` - Column order in CSV
+
+### 16.7 Format Limitations and Warnings
+
+**User Warning Implementation:**
+```python
+if output_format == "csv" and fetch_history:
+    logging.warning("CSV format does not include full audit/comment history.")
+    logging.warning("For complete history, use JSON format (--format json)")
+```
+
+**Why This Matters:**
+- Sets correct expectations
+- Prevents confusion about missing data
+- Guides users to appropriate format
+
+### 16.8 Format Decision Matrix
+
+| Use Case | Recommended Format | Reason |
+|----------|-------------------|--------|
+| Complete backup | JSON | Preserves all data |
+| Data analysis/reporting | CSV | Easy to analyze in spreadsheets |
+| Automation/integration | JSON | Maintains structure for parsing |
+| Business review | CSV | Non-technical users prefer spreadsheets |
+| Audit trail research | JSON | Need full comment and event history |
+| Ticket metrics/counts | CSV | Aggregated data sufficient |
+| Migration to another system | JSON | Complete data transfer |
+| Weekly status report | CSV | Quick filtering and charting |
+
+### 16.9 Practical Examples
+
+**Example 1: Monthly Report for Management**
+```bash
+# Export to CSV for easy spreadsheet analysis
+python zendesk_exporter.py \
+  --start-date 2024-02-01 \
+  --end-date 2024-02-29 \
+  --priorities P1,P2 \
+  --format csv \
+  --output february_priority_tickets.csv
+```
+
+**Result:** Open in Excel, create pivot tables, generate charts.
+
+**Example 2: Complete Backup**
+```bash
+# Export to JSON for complete data preservation
+python zendesk_exporter.py \
+  --start-date 2024-01-01 \
+  --end-date 2024-12-31 \
+  --format json \
+  --output 2024_complete_backup.json
+```
+
+**Result:** All tickets with full audit trails and comments.
+
+**Example 3: Quick Analysis**
+```bash
+# CSV without full history (faster, smaller file)
+python zendesk_exporter.py \
+  --organization-id 12345 \
+  --format csv \
+  --no-history
+```
+
+**Result:** Ticket list with metadata, no history counts.
+
+### 16.10 Working with CSV Output
+
+**In Excel/Google Sheets:**
+1. Open CSV file
+2. Use AutoFilter to filter by priority, status, or tags
+3. Create pivot tables for aggregation
+4. Generate charts for visualization
+5. Sort by created_at for chronological view
+
+**In Python for Analysis:**
+```python
+import pandas as pd
+
+# Read CSV
+df = pd.read_csv('tickets_2024-01-01_to_2024-01-31.csv')
+
+# Filter high priority tickets
+urgent = df[df['ticket_priority'].isin(['P1', 'P2'])]
+
+# Count by status
+status_counts = df['status'].value_counts()
+
+# Average audit count
+avg_audits = df['audit_count'].mean()
+```
+
+**Command-Line Analysis:**
+```bash
+# Count tickets by priority (Unix)
+cut -d',' -f17 tickets.csv | sort | uniq -c
+
+# Filter P1 tickets (Unix)
+grep ",P1," tickets.csv > p1_tickets.csv
+
+# Import to SQLite for SQL queries
+sqlite3 tickets.db
+.mode csv
+.import tickets.csv tickets
+SELECT status, COUNT(*) FROM tickets GROUP BY status;
+```
+
+### 16.11 File Size Considerations
+
+**JSON with Full History:**
+- Large file sizes (tickets × audits × comments)
+- Example: 1000 tickets with history ≈ 50-100 MB
+
+**JSON without History:**
+- Moderate file sizes
+- Example: 1000 tickets ≈ 5-10 MB
+
+**CSV:**
+- Smallest file sizes (flat structure)
+- Example: 1000 tickets ≈ 1-2 MB
+
+**Storage Recommendation:**
+- Keep JSON backups for compliance
+- Use CSV for active reporting and analysis
+
+---
+
 ## Conclusion
 
 This guide has provided a comprehensive analysis of `zendesk_exporter.py`, covering:
@@ -3452,17 +4126,34 @@ You now understand not just *what* the code does, but *why* it's written this wa
 2. Handle errors specifically and gracefully
 3. Implement pagination for large datasets
 4. Respect API rate limits
-5. Use environment variables for configuration
-6. Log at appropriate levels for observability
-7. Validate input early and clearly
-8. Use context managers for resource management
+5. Support flexible configuration (CLI args, env vars, prompts)
+6. Build modular, composable query systems
+7. Validate input early with clear error messages
+8. Log at appropriate levels for observability
+9. Support multiple environments with intelligent credential management
+10. Generate descriptive output filenames
+11. Use argparse for professional CLI interfaces
+12. Document code comprehensively with docstrings
 
 **Next Steps:**
 
 - Run the script with your own Zendesk account
+- Try all three export modes (organization, timeframe, combined)
+- Set up multiple credential sets for sandbox and production
+- Experiment with priority filtering and date field options
 - Modify it to export different data (users, organizations)
-- Add features from Chapter 12.9 (Areas for Enhancement)
 - Apply these patterns to other API integrations
+- Extend with additional custom field filters
+- Add CSV export format option
+
+**Enhanced Capabilities You've Learned:**
+
+- **Flexible Export Modes:** Organization, timeframe, priority, or any combination
+- **Multi-Environment Support:** Switch between sandbox and production seamlessly
+- **Professional CLI:** Full argparse integration with help text and validation
+- **Custom Field Filtering:** Query by business-specific priority values
+- **Intelligent Defaults:** Auto-selection and fallback logic
+- **Comprehensive Logging:** Track which credentials and filters are active
 
 Happy coding!
 

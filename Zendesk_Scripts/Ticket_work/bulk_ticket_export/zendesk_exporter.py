@@ -2,7 +2,8 @@
 Zendesk Ticket Exporter
 
 Export Zendesk tickets by organization, timeframe, or custom priority field.
-Supports multiple credential sets, full event history, and flexible filtering.
+Supports multiple credential sets, full event history, flexible filtering, and
+multiple output formats (JSON, CSV).
 
 Usage:
     python zendesk_exporter.py [OPTIONS]
@@ -17,12 +18,16 @@ Examples:
     # Filter by priority
     python zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 --priorities P1,P2
 
+    # Export to CSV format
+    python zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 --format csv
+
     # Use second credential set
     python zendesk_exporter.py --credential-set 2 --organization-id 67890
 """
 
 import requests
 import json
+import csv
 import os
 import sys
 import logging
@@ -189,7 +194,7 @@ def build_search_query(organization_id=None, start_date=None, end_date=None,
     return " ".join(query_parts)
 
 
-def generate_filename(start_date=None, end_date=None, priorities=None, organization_id=None):
+def generate_filename(start_date=None, end_date=None, priorities=None, organization_id=None, file_format="json"):
     """
     Generate descriptive filename based on export parameters.
 
@@ -200,13 +205,14 @@ def generate_filename(start_date=None, end_date=None, priorities=None, organizat
         end_date (str, optional): End date in YYYY-MM-DD format
         priorities (list, optional): List of priority values
         organization_id (str, optional): Organization ID
+        file_format (str, optional): File format extension (default: "json")
 
     Returns:
-        str: Generated filename with .json extension
+        str: Generated filename with appropriate extension
 
     Examples:
         - Date range only: tickets_2024-01-01_to_2024-01-31_20240315_143022.json
-        - With priorities: tickets_2024-01-01_to_2024-01-31_P1-P2_20240315_143022.json
+        - With priorities: tickets_2024-01-01_to_2024-01-31_P1-P2_20240315_143022.csv
         - Org only: tickets_org_123456_20240315_143022.json
     """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -227,7 +233,101 @@ def generate_filename(start_date=None, end_date=None, priorities=None, organizat
     # Always include timestamp
     parts.append(timestamp)
 
-    return "_".join(parts) + ".json"
+    return "_".join(parts) + f".{file_format}"
+
+
+def flatten_ticket_for_csv(ticket):
+    """
+    Flatten ticket dictionary for CSV export.
+
+    Extracts main ticket fields and custom field values into a flat structure.
+    Note: Does not include full audit/comment history (use JSON for complete data).
+
+    Args:
+        ticket (dict): Ticket dictionary from Zendesk API
+
+    Returns:
+        dict: Flattened ticket data suitable for CSV
+    """
+    flattened = {
+        'id': ticket.get('id'),
+        'subject': ticket.get('subject', ''),
+        'description': ticket.get('description', ''),
+        'status': ticket.get('status'),
+        'priority': ticket.get('priority'),
+        'type': ticket.get('type'),
+        'created_at': ticket.get('created_at'),
+        'updated_at': ticket.get('updated_at'),
+        'organization_id': ticket.get('organization_id'),
+        'requester_id': ticket.get('requester_id'),
+        'assignee_id': ticket.get('assignee_id'),
+        'submitter_id': ticket.get('submitter_id'),
+        'group_id': ticket.get('group_id'),
+        'tags': ','.join(ticket.get('tags', [])) if ticket.get('tags') else '',
+        'url': ticket.get('url'),
+    }
+
+    # Extract custom field for Ticket Priority (ID: 360047533253)
+    custom_fields = ticket.get('custom_fields', [])
+    for field in custom_fields:
+        if field.get('id') == int(PRIORITY_FIELD_ID):
+            flattened['ticket_priority'] = field.get('value', '')
+            break
+    else:
+        flattened['ticket_priority'] = ''
+
+    # Add counts if history was fetched
+    if 'audits' in ticket:
+        flattened['audit_count'] = len(ticket.get('audits', []))
+    if 'comments' in ticket:
+        flattened['comment_count'] = len(ticket.get('comments', []))
+
+    return flattened
+
+
+def export_to_csv(tickets, output_path):
+    """
+    Export tickets to CSV format.
+
+    Creates a CSV file with flattened ticket data. Each ticket becomes one row.
+    Note: Full audit and comment history is not included in CSV (use JSON for that).
+
+    Args:
+        tickets (list): List of ticket dictionaries
+        output_path (str): Path to output CSV file
+
+    Returns:
+        None
+    """
+    if not tickets:
+        logging.warning("No tickets to export to CSV")
+        # Create empty CSV with headers
+        with open(output_path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=[
+                'id', 'subject', 'description', 'status', 'priority', 'type',
+                'created_at', 'updated_at', 'organization_id', 'requester_id',
+                'assignee_id', 'submitter_id', 'group_id', 'tags', 'url',
+                'ticket_priority', 'audit_count', 'comment_count'
+            ])
+            writer.writeheader()
+        return
+
+    # Flatten all tickets
+    flattened_tickets = [flatten_ticket_for_csv(ticket) for ticket in tickets]
+
+    # Get all unique field names (in case some tickets have extra fields)
+    fieldnames = set()
+    for ticket in flattened_tickets:
+        fieldnames.update(ticket.keys())
+    fieldnames = sorted(fieldnames)
+
+    # Write to CSV
+    with open(output_path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(flattened_tickets)
+
+    logging.info(f"Exported {len(tickets)} tickets to CSV: {output_path}")
 
 
 class ZendeskAPIClient:
@@ -692,6 +792,8 @@ Examples:
                        help='Select which credential set to use (1 or 2)')
 
     # Export options
+    parser.add_argument('--format', default='json', choices=['json', 'csv'],
+                       help='Output file format (default: json)')
     parser.add_argument('--no-history', action='store_true',
                        help='Skip fetching audit history and comments (faster)')
     parser.add_argument('--output',
@@ -728,6 +830,7 @@ if __name__ == "__main__":
     priorities_str = args.priorities or os.getenv("TICKET_PRIORITIES")
     organization_id = args.organization_id or os.getenv("CUSTOMER_ORGANIZATION_ID")
     fetch_history = not args.no_history and os.getenv("FETCH_FULL_HISTORY", "true").lower() in ["true", "1", "yes"]
+    output_format = args.format or os.getenv("OUTPUT_FORMAT", "json")
     output_path = args.output or os.getenv("OUTPUT_FILE_PATH")
 
     # Determine export mode
@@ -815,9 +918,14 @@ if __name__ == "__main__":
         logging.error(f"Validation error: {e}")
         sys.exit(1)
 
+    # Validate format and history combination
+    if output_format == "csv" and fetch_history:
+        logging.warning("CSV format does not include full audit/comment history. Only ticket metadata and counts will be exported.")
+        logging.warning("For complete history, use JSON format (--format json)")
+
     # Generate output filename if not specified
     if not output_path:
-        output_path = generate_filename(start_date, end_date, priorities, organization_id)
+        output_path = generate_filename(start_date, end_date, priorities, organization_id, output_format)
         logging.info(f"Using generated filename: {output_path}")
 
     # Initialize Zendesk API client
@@ -854,30 +962,36 @@ if __name__ == "__main__":
         else:
             logging.info("Skipping full event history. Only ticket metadata will be exported.")
 
-        # Prepare output with metadata
-        if has_timeframe:
-            output_data = {
-                "export_metadata": {
-                    "export_date": datetime.now().isoformat(),
-                    "start_date": start_date,
-                    "end_date": end_date,
-                    "date_field": date_field,
-                    "ticket_priorities": priorities,
-                    "priority_field_id": PRIORITY_FIELD_ID if priorities else None,
-                    "organization_id": organization_id,
-                    "total_tickets": len(tickets),
-                    "includes_history": fetch_history
-                },
-                "tickets": tickets
-            }
+        # Write to file based on format
+        if output_format == "csv":
+            # CSV export - tickets only (metadata not included in CSV)
+            export_to_csv(tickets, output_path)
         else:
-            # Backward compatibility: output tickets directly for org-only mode
-            output_data = tickets
+            # JSON export - with metadata if timeframe mode
+            if has_timeframe:
+                output_data = {
+                    "export_metadata": {
+                        "export_date": datetime.now().isoformat(),
+                        "start_date": start_date,
+                        "end_date": end_date,
+                        "date_field": date_field,
+                        "ticket_priorities": priorities,
+                        "priority_field_id": PRIORITY_FIELD_ID if priorities else None,
+                        "organization_id": organization_id,
+                        "total_tickets": len(tickets),
+                        "includes_history": fetch_history,
+                        "format": "json"
+                    },
+                    "tickets": tickets
+                }
+            else:
+                # Backward compatibility: output tickets directly for org-only mode
+                output_data = tickets
 
-        # Write to file
-        with open(output_path, "w") as f:
-            json.dump(output_data, f, indent=4)
-        logging.info(f"Exported {len(tickets)} tickets to {output_path}")
+            # Write JSON
+            with open(output_path, "w", encoding='utf-8') as f:
+                json.dump(output_data, f, indent=4, ensure_ascii=False)
+            logging.info(f"Exported {len(tickets)} tickets to {output_path}")
 
     except requests.exceptions.HTTPError as e:
         logging.error(f"HTTP Error during Zendesk API request: {e.response.status_code} - {e.response.text}")

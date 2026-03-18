@@ -15,13 +15,18 @@ Export Zendesk tickets by organization, timeframe, or both, with optional full e
 - **Custom priority filtering:**
   - Filter by custom "Ticket Priority" field (P1, P2, P3, P4)
   - Single or multiple priority levels
+- **Multiple output formats:**
+  - JSON format (default) - includes full structure and metadata
+  - CSV format - flattened data for spreadsheet analysis
 - **Optional full event history** (defaults to yes):
   - Ticket audits (status changes, field updates, assignments)
   - Comments and replies (public and private)
+  - Note: CSV format includes counts only, not full history
 - **Flexible configuration:**
   - Command-line arguments
   - Environment variables
   - Interactive prompts
+- Multiple credential set support for different Zendesk instances
 - Automatic pagination handling
 - Rate limiting to respect API quotas
 - Comprehensive error handling and logging
@@ -55,7 +60,8 @@ The following environment variables can be configured:
 | `DATE_FIELD` | Date field to filter on | No | `created` | `created`, `updated`, `solved` |
 | `TICKET_PRIORITIES` | Comma-separated priorities to filter | No | - | `P1,P2` |
 | `FETCH_FULL_HISTORY` | Fetch full event history (audits & comments) | No | `true` | `true` or `false` |
-| `OUTPUT_FILE_PATH` | Path where the JSON file will be saved | No | Auto-generated | `tickets.json` |
+| `OUTPUT_FORMAT` | Output file format | No | `json` | `json` or `csv` |
+| `OUTPUT_FILE_PATH` | Path where the output file will be saved | No | Auto-generated | `tickets.json` |
 
 \* At least one export mode must be specified (organization ID, date range, or both)
 \*\* At least one complete credential set must be configured (Set 1 or Set 2). If both are configured, use `--credential-set` or `ZENDESK_CREDENTIAL_SET` to select which one.
@@ -213,6 +219,7 @@ python zendesk_exporter.py [OPTIONS]
 | `--priorities` | Comma-separated priorities (P1,P2,P3,P4) | `--priorities P1,P2` |
 | `--organization-id` | Organization ID | `--organization-id 123456` |
 | `--credential-set` | Select credential set (1 or 2) | `--credential-set 2` |
+| `--format` | Output file format (json or csv) | `--format csv` |
 | `--no-history` | Skip fetching full event history | `--no-history` |
 | `--output` | Output file path | `--output tickets.json` |
 
@@ -300,6 +307,33 @@ python zendesk_exporter.py \
   --end-date 2024-01-31 \
   --no-history
 ```
+
+#### CSV Export
+
+**Export to CSV format for spreadsheet analysis:**
+```bash
+python zendesk_exporter.py \
+  --start-date 2024-01-01 \
+  --end-date 2024-01-31 \
+  --format csv
+```
+
+**CSV with priority filter:**
+```bash
+python zendesk_exporter.py \
+  --start-date 2024-01-01 \
+  --end-date 2024-03-31 \
+  --priorities P1,P2 \
+  --format csv \
+  --output q1_priority_tickets.csv
+```
+
+**Important CSV Notes:**
+- CSV format includes main ticket fields and custom priority
+- Audit and comment counts are included (if `--no-history` not used)
+- Full audit/comment history is NOT included in CSV (use JSON for that)
+- Tags are comma-separated within a single CSV cell
+- Suitable for Excel, Google Sheets, or data analysis tools
 
 #### Interactive Mode
 
@@ -487,6 +521,26 @@ The script generates a JSON file with the following structure:
 ]
 ```
 
+**CSV export format:**
+
+CSV files contain flattened ticket data suitable for spreadsheet analysis:
+
+| id | subject | status | priority | type | created_at | ticket_priority | tags | audit_count | comment_count |
+|----|---------|--------|----------|------|------------|-----------------|------|-------------|---------------|
+| 12345 | Customer inquiry | open | high | question | 2024-01-15T10:30:00Z | P1 | urgent,customer | 5 | 3 |
+| 12346 | Feature request | pending | normal | task | 2024-01-16T14:20:00Z | P2 | feature,roadmap | 2 | 1 |
+
+**CSV Columns:**
+- **Basic fields**: id, subject, description, status, priority, type
+- **Timestamps**: created_at, updated_at
+- **Relationships**: organization_id, requester_id, assignee_id, submitter_id, group_id
+- **Custom fields**: ticket_priority (from custom field 360047533253)
+- **Tags**: Comma-separated list in single cell
+- **History counts**: audit_count, comment_count (if history was fetched)
+- **URL**: Direct link to ticket
+
+**Note:** CSV format does not include nested structures (full audit events, comment bodies). Use JSON format for complete data preservation.
+
 ### Dynamic Filenames
 
 When no output path is specified, the script generates descriptive filenames based on export parameters:
@@ -495,6 +549,9 @@ When no output path is specified, the script generates descriptive filenames bas
 - **Timeframe-only**: `tickets_2024-01-01_to_2024-12-31_20240315_143022.json`
 - **With priorities**: `tickets_2024-01-01_to_2024-12-31_P1-P2_20240315_143022.json`
 - **Combined**: `tickets_2024-01-01_to_2024-12-31_P1_org_123456_20240315_143022.json`
+- **CSV format**: `tickets_2024-01-01_to_2024-12-31_P1-P2_20240315_143022.csv`
+
+The file extension (.json or .csv) is automatically set based on the selected format.
 
 ### Performance Considerations
 
