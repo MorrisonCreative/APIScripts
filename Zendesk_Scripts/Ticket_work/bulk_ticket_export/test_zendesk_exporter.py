@@ -19,7 +19,9 @@ from zendesk_exporter import (
     normalize_credential_set,
     load_credentials,
     flatten_ticket_for_csv,
-    export_to_csv
+    export_to_csv,
+    calculate_priority_breakdown,
+    log_export_summary
 )
 
 class TestZendeskAPIClient(unittest.TestCase):
@@ -692,6 +694,130 @@ class TestCredentialManagement(unittest.TestCase):
         self.assertEqual(email, 'old@example.com')
         self.assertEqual(token, 'oldtoken')
         self.assertEqual(selected, 1)
+
+
+class TestPriorityBreakdown(unittest.TestCase):
+    """Test priority breakdown calculation and summary logging"""
+
+    def test_calculate_priority_breakdown_all_priorities(self):
+        """Test breakdown with all priority levels present"""
+        tickets = [
+            {'id': 1, 'custom_fields': [{'id': 360047533253, 'value': 'P1'}]},
+            {'id': 2, 'custom_fields': [{'id': 360047533253, 'value': 'P1'}]},
+            {'id': 3, 'custom_fields': [{'id': 360047533253, 'value': 'P2'}]},
+            {'id': 4, 'custom_fields': [{'id': 360047533253, 'value': 'P3'}]},
+            {'id': 5, 'custom_fields': [{'id': 360047533253, 'value': 'P3'}]},
+            {'id': 6, 'custom_fields': [{'id': 360047533253, 'value': 'P3'}]},
+            {'id': 7, 'custom_fields': [{'id': 360047533253, 'value': 'P4'}]},
+        ]
+
+        breakdown = calculate_priority_breakdown(tickets)
+
+        self.assertEqual(breakdown['P1'], 2)
+        self.assertEqual(breakdown['P2'], 1)
+        self.assertEqual(breakdown['P3'], 3)
+        self.assertEqual(breakdown['P4'], 1)
+        self.assertEqual(breakdown['unassigned'], 0)
+
+    def test_calculate_priority_breakdown_with_unassigned(self):
+        """Test breakdown with tickets missing priority field"""
+        tickets = [
+            {'id': 1, 'custom_fields': [{'id': 360047533253, 'value': 'P1'}]},
+            {'id': 2, 'custom_fields': [{'id': 999999999, 'value': 'other'}]},  # Different field
+            {'id': 3, 'custom_fields': []},  # No custom fields
+            {'id': 4, 'custom_fields': [{'id': 360047533253, 'value': ''}]},  # Empty value
+            {'id': 5, 'custom_fields': [{'id': 360047533253, 'value': 'P2'}]},
+        ]
+
+        breakdown = calculate_priority_breakdown(tickets)
+
+        self.assertEqual(breakdown['P1'], 1)
+        self.assertEqual(breakdown['P2'], 1)
+        self.assertEqual(breakdown['P3'], 0)
+        self.assertEqual(breakdown['P4'], 0)
+        self.assertEqual(breakdown['unassigned'], 3)
+
+    def test_calculate_priority_breakdown_empty_tickets(self):
+        """Test breakdown with no tickets"""
+        tickets = []
+
+        breakdown = calculate_priority_breakdown(tickets)
+
+        self.assertEqual(breakdown['P1'], 0)
+        self.assertEqual(breakdown['P2'], 0)
+        self.assertEqual(breakdown['P3'], 0)
+        self.assertEqual(breakdown['P4'], 0)
+        self.assertEqual(breakdown['unassigned'], 0)
+
+    def test_calculate_priority_breakdown_case_sensitive(self):
+        """Test that priority values match exactly (case-sensitive)"""
+        tickets = [
+            {'id': 1, 'custom_fields': [{'id': 360047533253, 'value': 'P1'}]},
+            {'id': 2, 'custom_fields': [{'id': 360047533253, 'value': 'p1'}]},  # lowercase
+            {'id': 3, 'custom_fields': [{'id': 360047533253, 'value': 'P2'}]},
+        ]
+
+        breakdown = calculate_priority_breakdown(tickets)
+
+        self.assertEqual(breakdown['P1'], 1)  # Only exact match counts
+        self.assertEqual(breakdown['P2'], 1)
+        self.assertEqual(breakdown['unassigned'], 1)  # lowercase 'p1' is unassigned
+
+    def test_calculate_priority_breakdown_only_p1(self):
+        """Test breakdown with only P1 tickets"""
+        tickets = [
+            {'id': 1, 'custom_fields': [{'id': 360047533253, 'value': 'P1'}]},
+            {'id': 2, 'custom_fields': [{'id': 360047533253, 'value': 'P1'}]},
+            {'id': 3, 'custom_fields': [{'id': 360047533253, 'value': 'P1'}]},
+        ]
+
+        breakdown = calculate_priority_breakdown(tickets)
+
+        self.assertEqual(breakdown['P1'], 3)
+        self.assertEqual(breakdown['P2'], 0)
+        self.assertEqual(breakdown['P3'], 0)
+        self.assertEqual(breakdown['P4'], 0)
+        self.assertEqual(breakdown['unassigned'], 0)
+
+    def test_log_export_summary_with_tickets(self):
+        """Test that summary logging doesn't crash with various breakdowns"""
+        tickets = [
+            {'id': 1, 'custom_fields': [{'id': 360047533253, 'value': 'P1'}]},
+            {'id': 2, 'custom_fields': [{'id': 360047533253, 'value': 'P2'}]},
+        ]
+        breakdown = {'P1': 1, 'P2': 1, 'P3': 0, 'P4': 0, 'unassigned': 0}
+
+        # Should not raise any exceptions
+        try:
+            log_export_summary(tickets, breakdown)
+        except Exception as e:
+            self.fail(f"log_export_summary raised an exception: {e}")
+
+    def test_log_export_summary_empty(self):
+        """Test summary logging with no tickets"""
+        tickets = []
+        breakdown = {'P1': 0, 'P2': 0, 'P3': 0, 'P4': 0, 'unassigned': 0}
+
+        # Should not raise any exceptions
+        try:
+            log_export_summary(tickets, breakdown)
+        except Exception as e:
+            self.fail(f"log_export_summary raised an exception: {e}")
+
+    def test_log_export_summary_with_unassigned(self):
+        """Test summary logging with unassigned tickets"""
+        tickets = [
+            {'id': 1, 'custom_fields': [{'id': 360047533253, 'value': 'P1'}]},
+            {'id': 2, 'custom_fields': []},
+            {'id': 3, 'custom_fields': []},
+        ]
+        breakdown = {'P1': 1, 'P2': 0, 'P3': 0, 'P4': 0, 'unassigned': 2}
+
+        # Should not raise any exceptions
+        try:
+            log_export_summary(tickets, breakdown)
+        except Exception as e:
+            self.fail(f"log_export_summary raised an exception: {e}")
 
 
 if __name__ == '__main__':

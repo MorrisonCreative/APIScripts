@@ -83,7 +83,7 @@ The Zendesk API provides access to this data, but it's spread across multiple en
 1. Authenticates securely with Zendesk's API (supporting multiple credential sets)
 2. Supports multiple export modes:
    - By organization (all tickets for a customer)
-   - By timeframe (all tickets in a date range)
+   - By timeframe (all tickets across all organizations in a date range)
    - By priority (using custom field filtering)
    - Or any combination of the above
 3. Provides both CLI arguments and environment variable configuration
@@ -3757,6 +3757,8 @@ def build_search_query(organization_id=None, start_date=None,
 
 **Modular Design:** Each filter is independent, enabling any combination.
 
+**Important:** The `organization_id` parameter is optional. When omitted, the search query will return tickets from **all organizations** in your Zendesk instance that match the other filters (timeframe, priorities, etc.).
+
 ### 12.3 Zendesk Search Query Syntax
 
 **Example Query:**
@@ -3779,10 +3781,10 @@ python zendesk_exporter.py --organization-id 12345
 # All tickets for one organization
 ```
 
-**Mode 2: Timeframe Only**
+**Mode 2: Timeframe Only (All Organizations)**
 ```bash
 python zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31
-# All tickets in January 2024
+# All tickets across all organizations in January 2024
 ```
 
 **Mode 3: Priority Filter**
@@ -4106,6 +4108,103 @@ SELECT status, COUNT(*) FROM tickets GROUP BY status;
 **Storage Recommendation:**
 - Keep JSON backups for compliance
 - Use CSV for active reporting and analysis
+
+### 16.12 Export Summary and Priority Breakdown
+
+After all tickets are fetched and enriched, the script displays a comprehensive summary to the console showing the total count and priority distribution.
+
+**Purpose:**
+- Instant visibility into export results
+- Quick assessment of priority distribution
+- Verification that filters worked as expected
+- Business intelligence at a glance
+
+**Example Output:**
+```
+============================================================
+EXPORT SUMMARY
+============================================================
+Total Tickets Exported: 1523
+
+Priority Breakdown:
+  P1 (Highest):   342 tickets
+  P2:             789 tickets
+  P3:             312 tickets
+  P4 (Lowest):     68 tickets
+  Unassigned:      12 tickets
+
+Priority Distribution (of assigned tickets):
+  P1:  22.6%
+  P2:  52.2%
+  P3:  20.6%
+  P4:   4.5%
+============================================================
+```
+
+**Implementation:**
+
+```python
+def calculate_priority_breakdown(tickets):
+    """Calculate count of tickets by priority level"""
+    breakdown = {'P1': 0, 'P2': 0, 'P3': 0, 'P4': 0, 'unassigned': 0}
+
+    for ticket in tickets:
+        priority_found = False
+        custom_fields = ticket.get('custom_fields', [])
+
+        # Look for the priority custom field
+        for field in custom_fields:
+            if field.get('id') == int(PRIORITY_FIELD_ID):
+                priority_value = field.get('value', '')
+                if priority_value in VALID_PRIORITIES:
+                    breakdown[priority_value] += 1
+                    priority_found = True
+                break
+
+        if not priority_found:
+            breakdown['unassigned'] += 1
+
+    return breakdown
+```
+
+**Key Features:**
+- Counts tickets for each priority level (P1, P2, P3, P4)
+- Tracks tickets without priority assigned
+- Calculates percentage distribution (excludes unassigned)
+- Always displays total count, even if zero
+- Unassigned count only shown if > 0
+
+**Data Persistence:**
+For JSON exports in timeframe mode, the breakdown is also saved in the export metadata:
+
+```json
+{
+  "export_metadata": {
+    "total_tickets": 1523,
+    "priority_breakdown": {
+      "P1": 342,
+      "P2": 789,
+      "P3": 312,
+      "P4": 68,
+      "unassigned": 12
+    }
+  }
+}
+```
+
+**Use Cases:**
+- **Triage Reports:** Quickly see P1/P2 volume
+- **SLA Compliance:** Track high-priority ticket counts
+- **Resource Planning:** Understand workload distribution
+- **Quality Control:** Identify tickets missing priority assignment
+- **Trend Analysis:** Compare breakdown across time periods
+
+**Technical Details:**
+- Runs after ticket enrichment (if enabled)
+- Minimal performance impact (single pass through tickets)
+- Always displays before file write operations
+- Uses custom field ID 360047533253 for priority detection
+- Case-sensitive matching (P1, P2, P3, P4 exactly)
 
 ---
 

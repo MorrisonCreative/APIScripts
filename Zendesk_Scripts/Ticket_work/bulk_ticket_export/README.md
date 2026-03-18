@@ -10,7 +10,7 @@ Export Zendesk tickets by organization, timeframe, or both, with optional full e
 
 - **Three export modes:**
   - Export all tickets for a specific organization
-  - Export tickets within a date range (created, updated, or solved)
+  - Export all tickets across all organizations within a date range (created, updated, or solved)
   - Combined mode: filter by both organization and timeframe
 - **Custom priority filtering:**
   - Filter by custom "Ticket Priority" field (P1, P2, P3, P4)
@@ -31,6 +31,11 @@ Export Zendesk tickets by organization, timeframe, or both, with optional full e
 - Rate limiting to respect API quotas
 - Comprehensive error handling and logging
 - Dynamic filename generation based on export parameters
+- **Export summary with priority breakdown:**
+  - Total ticket count
+  - Count per priority level (P1, P2, P3, P4)
+  - Unassigned ticket count
+  - Priority distribution percentages
 
 ### Prerequisites
 
@@ -217,7 +222,7 @@ python zendesk_exporter.py [OPTIONS]
 | `--end-date` | End date (YYYY-MM-DD) | `--end-date 2024-12-31` |
 | `--date-field` | Date field to filter on | `--date-field updated` |
 | `--priorities` | Comma-separated priorities (P1,P2,P3,P4) | `--priorities P1,P2` |
-| `--organization-id` | Organization ID | `--organization-id 123456` |
+| `--organization-id` | Organization ID (optional - omit to search all organizations) | `--organization-id 123456` |
 | `--credential-set` | Select credential set (1 or 2) | `--credential-set 2` |
 | `--format` | Output file format (json or csv) | `--format csv` |
 | `--no-history` | Skip fetching full event history | `--no-history` |
@@ -250,16 +255,18 @@ python zendesk_exporter.py
 # Enter organization ID when prompted
 ```
 
-#### Mode 2: Export by Timeframe
+#### Mode 2: Export by Timeframe (All Organizations)
 
-**Export all tickets from Q1 2024:**
+Export tickets across all organizations in your Zendesk instance within a specified timeframe.
+
+**Export all tickets from Q1 2024 (across all organizations):**
 ```bash
 python zendesk_exporter.py \
   --start-date 2024-01-01 \
   --end-date 2024-03-31
 ```
 
-**Export P1 priority tickets from January:**
+**Export P1 priority tickets from January (all organizations):**
 ```bash
 python zendesk_exporter.py \
   --start-date 2024-01-01 \
@@ -454,6 +461,13 @@ The script generates a JSON file with the following structure:
     "priority_field_id": "360047533253",
     "organization_id": null,
     "total_tickets": 1523,
+    "priority_breakdown": {
+      "P1": 342,
+      "P2": 789,
+      "P3": 312,
+      "P4": 68,
+      "unassigned": 12
+    },
     "includes_history": true
   },
   "tickets": [
@@ -552,6 +566,43 @@ When no output path is specified, the script generates descriptive filenames bas
 - **CSV format**: `tickets_2024-01-01_to_2024-12-31_P1-P2_20240315_143022.csv`
 
 The file extension (.json or .csv) is automatically set based on the selected format.
+
+### Export Summary
+
+After fetching tickets, the script displays a comprehensive summary in the console:
+
+```
+============================================================
+EXPORT SUMMARY
+============================================================
+Total Tickets Exported: 1523
+
+Priority Breakdown:
+  P1 (Highest):   342 tickets
+  P2:             789 tickets
+  P3:             312 tickets
+  P4 (Lowest):     68 tickets
+  Unassigned:      12 tickets
+
+Priority Distribution (of assigned tickets):
+  P1:  22.6%
+  P2:  52.2%
+  P3:  20.6%
+  P4:   4.5%
+============================================================
+```
+
+**Summary includes:**
+- **Total Tickets Exported**: Overall count of tickets exported
+- **Priority Breakdown**: Count of tickets for each priority level (P1-P4)
+- **Unassigned**: Tickets without a priority value set
+- **Priority Distribution**: Percentage breakdown of assigned tickets
+
+**Notes:**
+- The summary appears after all tickets are fetched and enriched (if applicable)
+- For JSON exports with timeframe mode, the breakdown is also saved in the `priority_breakdown` field of the export metadata
+- Percentages are calculated only from tickets with assigned priorities (excludes unassigned tickets)
+- If no tickets are exported, only the total count is shown
 
 ### Performance Considerations
 

@@ -12,11 +12,14 @@ Examples:
     # Export by organization
     python zendesk_exporter.py --organization-id 12345
 
-    # Export by date range
+    # Export all tickets across all organizations in a date range
     python zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31
 
-    # Filter by priority
+    # Filter by priority across all organizations
     python zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 --priorities P1,P2
+
+    # Export for specific organization within timeframe
+    python zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 --organization-id 12345
 
     # Export to CSV format
     python zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 --format csv
@@ -738,6 +741,82 @@ def load_credentials(credential_set=None):
         sys.exit(1)
 
 
+def calculate_priority_breakdown(tickets):
+    """
+    Calculate breakdown of tickets by priority level.
+
+    Analyzes the custom "Ticket Priority" field (ID: 360047533253) across
+    all tickets and provides a count for each priority level.
+
+    Args:
+        tickets (list): List of ticket dictionaries
+
+    Returns:
+        dict: Dictionary with priority counts and unassigned count
+            Example: {'P1': 5, 'P2': 12, 'P3': 8, 'P4': 3, 'unassigned': 2}
+    """
+    breakdown = {'P1': 0, 'P2': 0, 'P3': 0, 'P4': 0, 'unassigned': 0}
+
+    for ticket in tickets:
+        priority_found = False
+        custom_fields = ticket.get('custom_fields', [])
+
+        for field in custom_fields:
+            if field.get('id') == int(PRIORITY_FIELD_ID):
+                priority_value = field.get('value', '')
+                if priority_value in VALID_PRIORITIES:
+                    breakdown[priority_value] += 1
+                    priority_found = True
+                break
+
+        if not priority_found:
+            breakdown['unassigned'] += 1
+
+    return breakdown
+
+
+def log_export_summary(tickets, breakdown):
+    """
+    Log a summary of the export including total count and priority breakdown.
+
+    Displays:
+    - Total number of tickets exported
+    - Count per priority level (P1-P4)
+    - Count of tickets without priority assigned
+
+    Args:
+        tickets (list): List of ticket dictionaries
+        breakdown (dict): Priority breakdown from calculate_priority_breakdown()
+    """
+    logging.info("=" * 60)
+    logging.info("EXPORT SUMMARY")
+    logging.info("=" * 60)
+    logging.info(f"Total Tickets Exported: {len(tickets)}")
+
+    if len(tickets) > 0:
+        logging.info("")
+        logging.info("Priority Breakdown:")
+        logging.info(f"  P1 (Highest): {breakdown['P1']:>5} tickets")
+        logging.info(f"  P2:           {breakdown['P2']:>5} tickets")
+        logging.info(f"  P3:           {breakdown['P3']:>5} tickets")
+        logging.info(f"  P4 (Lowest):  {breakdown['P4']:>5} tickets")
+
+        if breakdown['unassigned'] > 0:
+            logging.info(f"  Unassigned:   {breakdown['unassigned']:>5} tickets")
+
+        logging.info("")
+        # Calculate percentages for assigned priorities
+        total_assigned = breakdown['P1'] + breakdown['P2'] + breakdown['P3'] + breakdown['P4']
+        if total_assigned > 0:
+            logging.info("Priority Distribution (of assigned tickets):")
+            logging.info(f"  P1: {breakdown['P1']/total_assigned*100:>5.1f}%")
+            logging.info(f"  P2: {breakdown['P2']/total_assigned*100:>5.1f}%")
+            logging.info(f"  P3: {breakdown['P3']/total_assigned*100:>5.1f}%")
+            logging.info(f"  P4: {breakdown['P4']/total_assigned*100:>5.1f}%")
+
+    logging.info("=" * 60)
+
+
 def parse_arguments():
     """
     Parse command-line arguments for the Zendesk ticket exporter.
@@ -785,7 +864,7 @@ Examples:
 
     # Organization filtering
     parser.add_argument('--organization-id',
-                       help='Zendesk organization ID to filter by')
+                       help='Zendesk organization ID to filter by (optional - omit to search all organizations)')
 
     # Credential set selection
     parser.add_argument('--credential-set', type=int, choices=[1, 2],
@@ -841,7 +920,11 @@ if __name__ == "__main__":
     try:
         # If neither mode is specified, prompt for which mode to use
         if not has_timeframe and not has_organization:
-            mode_choice = input("Export mode: (1) By organization, (2) By timeframe, (3) Both: ").strip()
+            print("\nExport Mode Options:")
+            print("  (1) By organization only - Export all tickets for a specific organization")
+            print("  (2) By timeframe - Export all tickets across ALL organizations in a date range")
+            print("  (3) Combined - Export tickets for a specific organization within a date range")
+            mode_choice = input("\nSelect export mode (1, 2, or 3): ").strip()
 
             if mode_choice == "1":
                 organization_id = input("Enter the Customer Organization ID: ").strip()
@@ -854,6 +937,7 @@ if __name__ == "__main__":
                 start_date = input("Enter start date (YYYY-MM-DD): ").strip()
                 end_date = input("Enter end date (YYYY-MM-DD): ").strip()
                 has_timeframe = True
+                # organization_id remains None - will search across all organizations
 
             elif mode_choice == "3":
                 organization_id = input("Enter the Customer Organization ID: ").strip()
@@ -866,7 +950,7 @@ if __name__ == "__main__":
                 has_organization = True
 
             else:
-                logging.error("Invalid mode selection.")
+                logging.error("Invalid mode selection. Please enter 1, 2, or 3.")
                 sys.exit(1)
 
         # If we have timeframe but missing dates, prompt for them
@@ -940,6 +1024,8 @@ if __name__ == "__main__":
                 logging.info(f"Filtering by priorities: {', '.join(priorities)}")
             if organization_id:
                 logging.info(f"Filtering by organization ID: {organization_id}")
+            else:
+                logging.info("Searching across ALL organizations (no organization filter)")
 
             tickets = client.search_tickets_by_timeframe(
                 start_date=start_date,
@@ -962,6 +1048,10 @@ if __name__ == "__main__":
         else:
             logging.info("Skipping full event history. Only ticket metadata will be exported.")
 
+        # Calculate and display export summary
+        priority_breakdown = calculate_priority_breakdown(tickets)
+        log_export_summary(tickets, priority_breakdown)
+
         # Write to file based on format
         if output_format == "csv":
             # CSV export - tickets only (metadata not included in CSV)
@@ -979,6 +1069,7 @@ if __name__ == "__main__":
                         "priority_field_id": PRIORITY_FIELD_ID if priorities else None,
                         "organization_id": organization_id,
                         "total_tickets": len(tickets),
+                        "priority_breakdown": priority_breakdown,
                         "includes_history": fetch_history,
                         "format": "json"
                     },
