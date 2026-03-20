@@ -5,8 +5,8 @@ Automated Zendesk Ticket Analysis and Email Reporting
 Exports tickets from last 7 days, analyzes with LLM (Claude or Gemini), and emails results.
 
 Usage:
-    python3 ticket_analyzer.py --llm claude [--dry-run]
-    python3 ticket_analyzer.py --llm gemini [--dry-run]
+    python3 ticket_analyzer.py --llm claude [--dry-run] [--priorities P1]
+    python3 ticket_analyzer.py --llm gemini [--dry-run] [--priorities P1,P2]
 
 Environment Variables Required:
     - ZENDESK_SUBDOMAIN, ZENDESK_EMAIL, ZENDESK_API_TOKEN (for export)
@@ -32,8 +32,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Script paths
-SCRIPT_DIR = "/Users/hunter-morrison/git/APIScripts/Zendesk_Scripts/Ticket_work/bulk_ticket_export"
+# Auto-detect script directory (works on any machine)
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 EXPORTER_SCRIPT = os.path.join(SCRIPT_DIR, "zendesk_exporter.py")
 OUTPUT_FILE = os.path.join(SCRIPT_DIR, "exported_tickets.json")
 
@@ -45,13 +45,14 @@ def calculate_date_range():
     return start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d')
 
 
-def run_export(start_date, end_date):
+def run_export(start_date, end_date, priorities=None):
     """
     Execute zendesk_exporter.py with proper arguments.
 
     Args:
         start_date (str): Start date in YYYY-MM-DD format
         end_date (str): End date in YYYY-MM-DD format
+        priorities (str): Comma-separated priorities (e.g., "P1" or "P1,P2")
 
     Returns:
         str: Path to exported JSON file
@@ -60,6 +61,8 @@ def run_export(start_date, end_date):
         RuntimeError: If export fails
     """
     logger.info(f"Running ticket export for {start_date} to {end_date}")
+    if priorities:
+        logger.info(f"Filtering for priorities: {priorities}")
 
     cmd = [
         "python3",
@@ -69,6 +72,10 @@ def run_export(start_date, end_date):
         "--format", "json",
         "--output", OUTPUT_FILE
     ]
+
+    # Add priorities filter if specified
+    if priorities:
+        cmd.extend(["--priorities", priorities])
 
     try:
         result = subprocess.run(
@@ -216,7 +223,7 @@ Format the response clearly for email delivery. Use clear headings and bullet po
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        model = genai.GenerativeModel('models/gemini-2.5-flash')
 
         response = model.generate_content(prompt)
         analysis = response.text
@@ -308,6 +315,11 @@ def main():
         action='store_true',
         help='Print analysis without sending email'
     )
+    parser.add_argument(
+        '--priorities',
+        type=str,
+        help='Filter by ticket priorities (e.g., "P1" or "P1,P2")'
+    )
 
     args = parser.parse_args()
 
@@ -317,7 +329,7 @@ def main():
         logger.info(f"Analysis period: {start_date} to {end_date}")
 
         # Step 2: Run ticket export
-        json_path = run_export(start_date, end_date)
+        json_path = run_export(start_date, end_date, priorities=args.priorities)
 
         # Step 3: Load ticket data
         ticket_data = load_ticket_data(json_path)
@@ -331,7 +343,8 @@ def main():
             raise ValueError(f"Unknown LLM: {args.llm}")
 
         # Step 5: Send email
-        subject = f"Zendesk Ticket Analysis - {start_date} to {end_date}"
+        priority_label = f" ({args.priorities} only)" if args.priorities else ""
+        subject = f"Zendesk Ticket Analysis{priority_label} - {start_date} to {end_date}"
         send_email(subject, analysis, dry_run=args.dry_run)
 
         logger.info("Process completed successfully!")

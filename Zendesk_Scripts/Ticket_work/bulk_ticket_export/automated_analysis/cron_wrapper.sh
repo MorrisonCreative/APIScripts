@@ -11,8 +11,9 @@ if [ -f ~/.zshrc ]; then
     source ~/.zshrc
 fi
 
-# Navigate to script directory
-cd /Users/hunter-morrison/git/APIScripts/Zendesk_Scripts/Ticket_work/bulk_ticket_export
+# Auto-detect script directory (works on any machine)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
 # Ensure log directory exists
 mkdir -p logs
@@ -22,9 +23,9 @@ echo "========================================" >> logs/cron.log
 echo "Execution started at $(date)" >> logs/cron.log
 echo "========================================" >> logs/cron.log
 
-# Run the analysis (default to Claude)
-# Remove --dry-run flag to send actual emails
-python3 ticket_analyzer.py --llm claude 2>&1 | tee -a logs/cron.log
+# Run the analysis (using Gemini, P1 tickets only)
+# Remove --priorities flag to get all tickets
+python3 ticket_analyzer.py --llm gemini --priorities P1 2>&1 | tee -a logs/cron.log
 
 # Capture exit code
 EXIT_CODE=$?

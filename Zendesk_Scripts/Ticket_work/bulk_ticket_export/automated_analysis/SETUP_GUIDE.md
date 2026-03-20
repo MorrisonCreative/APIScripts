@@ -2,6 +2,8 @@
 
 This guide will help you set up the automated Zendesk ticket analysis system that runs every Monday at 5 AM Pacific time.
 
+**✨ This system is fully portable** - all scripts auto-detect their location and can be copied to any machine or directory!
+
 ## 📋 What Was Created
 
 The following files have been created in this directory:
@@ -94,11 +96,19 @@ This will actually send the email to your configured recipients.
 Install the cron job to run every Monday at 5 AM Pacific:
 
 ```bash
+# First, get the full path to the wrapper script
+cd /path/to/your/bulk_ticket_export  # Navigate to your script directory
+WRAPPER_PATH="$(pwd)/cron_wrapper.sh"
+LOG_PATH="$(pwd)/logs/cron.log"
+
 # Open crontab editor
 crontab -e
 
-# Add this line at the bottom:
-0 5 * * 1 /Users/hunter-morrison/git/APIScripts/Zendesk_Scripts/Ticket_work/bulk_ticket_export/cron_wrapper.sh >> /Users/hunter-morrison/git/APIScripts/Zendesk_Scripts/Ticket_work/bulk_ticket_export/logs/cron.log 2>&1
+# Add this line at the bottom (replace paths with yours from above):
+0 5 * * 1 /full/path/to/cron_wrapper.sh >> /full/path/to/logs/cron.log 2>&1
+
+# Example for current installation:
+# 0 5 * * 1 /Users/hunter-morrison/git/APIScripts/Zendesk_Scripts/Ticket_work/bulk_ticket_export/cron_wrapper.sh >> /Users/hunter-morrison/git/APIScripts/Zendesk_Scripts/Ticket_work/bulk_ticket_export/logs/cron.log 2>&1
 
 # Save and exit (in vi/vim: press ESC, type :wq, press ENTER)
 ```
@@ -318,10 +328,49 @@ If you encounter issues:
 - [ ] Python dependencies installed (`pip3 install -r requirements.txt`)
 - [ ] Environment variables set in `~/.zshrc`
 - [ ] Gmail App Password created and configured
-- [ ] Test run successful (`./run_analysis.sh claude`)
-- [ ] Real email test successful (`python3 ticket_analyzer.py --llm claude`)
+- [ ] Test run successful (`./run_analysis.sh gemini P1`)
+- [ ] Real email test successful (`python3 ticket_analyzer.py --llm gemini --priorities P1`)
 - [ ] Cron job installed (`crontab -l` shows the entry)
 - [ ] Cron wrapper tested (`./cron_wrapper.sh`)
+
+---
+
+## 📦 Portability - Moving to Another Machine
+
+**All scripts are portable!** They auto-detect their location, so you can:
+
+1. **Copy the entire directory** to another machine:
+   ```bash
+   # On source machine:
+   tar -czf ticket-analyzer.tar.gz /path/to/bulk_ticket_export
+
+   # Transfer to new machine, then:
+   tar -xzf ticket-analyzer.tar.gz
+   cd bulk_ticket_export
+   ```
+
+2. **Set up environment variables** on the new machine (Step 1 above)
+
+3. **Install Python dependencies:**
+   ```bash
+   pip3 install -r requirements.txt
+   ```
+
+4. **Test it:**
+   ```bash
+   ./run_analysis.sh gemini P1
+   ```
+
+5. **Install cron job** with the new path (Step 4 above)
+
+**What gets auto-detected:**
+- ✅ Script directory location
+- ✅ Paths to `zendesk_exporter.py` and output files
+- ✅ Log directory location
+
+**What you need to configure:**
+- ⚙️ Environment variables (API keys, email credentials)
+- ⚙️ Cron job with full path to wrapper script
 
 ---
 
