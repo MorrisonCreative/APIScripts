@@ -209,9 +209,9 @@ def analyze_with_gemini(ticket_data):
 
     prompt = f"""You are analyzing Zendesk support tickets from the last 7 days.
 
-NOTE: This data includes tickets from TWO separate Zendesk instances:
-- Credential Set 1: {set1_count} tickets
-- Credential Set 2: {set2_count} tickets
+NOTE: This data includes P1 tickets from TWO separate Zendesk instances:
+- Credential Set 1: {set1_count} tickets: Standard Support Customers
+- Credential Set 2: {set2_count} tickets: US-Only Support Customers
 - Total: {metadata.get('total_tickets', 0)} tickets
 
 TICKETS DATA:
@@ -220,13 +220,13 @@ TICKETS DATA:
 Please provide:
 1. Total ticket count
 2. For each ticket, provide:
-   - Ticket ID, Organization Name (Not shortname) , and subject
-   - Status and priority
+   - Ticket ID, Organization Name, and Subject
+   - Status and Ticket Priority
    - Response time (time from creation to first response, if available in comments)
    - Total customer and agent public comments
    - Time to resolution (if resolved)
    - Brief 1-2 sentence summary of the issue and current status/next steps if available
-3. Identify themes or patterns across all tickets:
+3. Identify themes or patterns across all tickets and by instance:
    - Common issue types
    - Customer segments or organizations affected
    - Notable trends or concerns
