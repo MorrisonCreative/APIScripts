@@ -209,7 +209,7 @@ def analyze_with_gemini(ticket_data):
 
     prompt = f"""You are analyzing Zendesk support tickets from the last 7 days.
 
-NOTE: This data includes P1 tickets from TWO separate Zendesk instances:
+NOTE: This data includes P1 tickets from TWO separate Zendesk instances. In the output, do not identify these or mention "Credential Set", only mention "Standard Support" or "US-Only Support":
 - Credential Set 1: {set1_count} tickets: Standard Support Customers
 - Credential Set 2: {set2_count} tickets: US-Only Support Customers
 - Total: {metadata.get('total_tickets', 0)} tickets
