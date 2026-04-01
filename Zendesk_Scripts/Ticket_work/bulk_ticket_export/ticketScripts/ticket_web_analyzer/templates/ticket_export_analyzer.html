@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zendesk Ticket Export & Analyzer</title>
+    <!-- Marked.js for markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.0.0/marked.min.js"></script>
+    <!-- DOMPurify for HTML sanitization -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: #2c3e50; margin-bottom: 30px; }
+        .section { background: white; padding: 30px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .section h2 { color: #34495e; margin-bottom: 20px; font-size: 1.5em; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 500; color: #555; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        textarea { min-height: 100px; resize: vertical; font-family: inherit; }
+        button { background: #3498db; color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500; }
+        button:hover { background: #2980b9; }
+        button:disabled { background: #95a5a6; cursor: not-allowed; }
+        .btn-secondary { background: #95a5a6; }
+        .btn-secondary:hover { background: #7f8c8d; }
+        .status { padding: 12px; border-radius: 4px; margin: 15px 0; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .hidden { display: none; }
+        .file-info { background: #f8f9fa; padding: 15px; border-radius: 4px; margin: 15px 0; }
+        .file-info p { margin: 5px 0; color: #555; }
+        .analysis-result {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 4px;
+            margin-top: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        .analysis-result h1, .analysis-result h2, .analysis-result h3 {
+            color: #2c3e50;
+            margin-top: 20px;
+            margin-bottom: 12px;
+        }
+        .analysis-result h1 { font-size: 1.8em; border-bottom: 2px solid #ddd; padding-bottom: 8px; }
+        .analysis-result h2 { font-size: 1.5em; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+        .analysis-result h3 { font-size: 1.3em; }
+        .analysis-result p { margin: 12px 0; }
+        .analysis-result ul, .analysis-result ol { margin: 12px 0; padding-left: 30px; }
+        .analysis-result li { margin: 6px 0; }
+        .analysis-result code {
+            background: #e8e8e8;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        .analysis-result pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .analysis-result pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+        .analysis-result blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 16px;
+            margin: 15px 0;
+            color: #666;
+            font-style: italic;
+        }
+        .analysis-result table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 15px 0;
+        }
+        .analysis-result th, .analysis-result td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        .analysis-result th {
+            background: #e8e8e8;
+            font-weight: 600;
+        }
+        .analysis-result a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        .analysis-result a:hover {
+            text-decoration: underline;
+        }
+        .analysis-result strong {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .radio-group { display: flex; gap: 15px; flex-wrap: wrap; }
+        .radio-group label { display: flex; align-items: center; margin-bottom: 0; font-weight: normal; }
+        .radio-group input[type="radio"] { width: auto; margin-right: 5px; }
+        .reduction-input { margin-top: 10px; padding-left: 25px; }
+        .loading { display: inline-block; width: 14px; height: 14px; border: 2px solid #f3f3f3; border-top: 2px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; margin-left: 10px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .help-text { font-size: 12px; color: #666; margin-top: 5px; font-weight: normal; }
+        .checkbox-label { display: flex; align-items: center; font-weight: normal; }
+        .checkbox-label input[type="checkbox"] { width: auto; margin-right: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Zendesk Ticket Export & Gemini Analyzer</h1>
+
+        <!-- Export Section -->
+        <div class="section">
+            <h2>1. Export Tickets</h2>
+            <div class="form-group">
+                <label>Start Date</label>
+                <input type="date" id="startDate">
+            </div>
+            <div class="form-group">
+                <label>End Date</label>
+                <input type="date" id="endDate">
+            </div>
+            <div class="form-group">
+                <label>Organization ID (optional)</label>
+                <input type="text" id="orgId" placeholder="Leave empty for all organizations">
+            </div>
+            <div class="form-group">
+                <label>Credential Set</label>
+                <select id="credSet">
+                    <option value="1">Credential Set 1</option>
+                    <option value="2">Credential Set 2</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="includeHistory">
+                    Include full ticket history (slower, but includes all comments/audits)
+                </label>
+                <p class="help-text">⚡ Leave unchecked for 5-10x faster exports. Full history adds 0.1s + API calls per ticket.</p>
+            </div>
+            <button onclick="startExport()" id="exportBtn">Export Tickets</button>
+            <div id="exportStatus" class="hidden"></div>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="section">
+            <h2>2. Upload Existing File</h2>
+            <div class="form-group">
+                <input type="file" id="fileUpload" accept=".json">
+            </div>
+            <button onclick="uploadFile()" id="uploadBtn">Upload File</button>
+            <div id="uploadStatus" class="hidden"></div>
+        </div>
+
+        <!-- Analysis Section -->
+        <div class="section" id="analysisSection" style="display:none;">
+            <h2>3. Analyze with Gemini</h2>
+            <div class="file-info" id="currentFileInfo"></div>
+
+            <div class="form-group">
+                <label>Data Reduction (for large files)</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="reduction" value="full" checked> Full Data</label>
+                    <label><input type="radio" name="reduction" value="key_fields"> Key Fields Only</label>
+                    <label><input type="radio" name="reduction" value="priority"> Filter by Priority</label>
+                    <label><input type="radio" name="reduction" value="status"> Filter by Status</label>
+                    <label><input type="radio" name="reduction" value="limit"> Limit Tickets</label>
+                </div>
+                <div id="reductionInput" class="reduction-input hidden">
+                    <input type="text" id="reductionValue" placeholder="Enter value...">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Analysis Prompt</label>
+                <textarea id="analysisPrompt" placeholder="Example: Summarize the main issues and identify common themes..."></textarea>
+            </div>
+
+            <button onclick="startAnalysis()" id="analyzeBtn">Analyze with Gemini</button>
+            <div id="analysisStatus" class="hidden"></div>
+            <div id="analysisResult" class="hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentFilePath = null;
+
+        // Reduction option handling
+        document.querySelectorAll('input[name="reduction"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const input = document.getElementById('reductionInput');
+                const value = document.getElementById('reductionValue');
+
+                if (e.target.value === 'priority') {
+                    input.classList.remove('hidden');
+                    value.placeholder = 'e.g., P1, P2';
+                } else if (e.target.value === 'status') {
+                    input.classList.remove('hidden');
+                    value.placeholder = 'e.g., open, pending, solved';
+                } else if (e.target.value === 'limit') {
+                    input.classList.remove('hidden');
+                    value.placeholder = 'e.g., 100';
+                } else {
+                    input.classList.add('hidden');
+                }
+            });
+        });
+
+        async function startExport() {
+            const btn = document.getElementById('exportBtn');
+            const status = document.getElementById('exportStatus');
+
+            btn.disabled = true;
+            status.className = 'status info';
+            status.textContent = 'Starting export...';
+            status.classList.remove('hidden');
+
+            const data = {
+                start_date: document.getElementById('startDate').value,
+                end_date: document.getElementById('endDate').value,
+                organization_id: document.getElementById('orgId').value || null,
+                credential_sets: parseInt(document.getElementById('credSet').value),
+                include_history: document.getElementById('includeHistory').checked
+            };
+
+            try {
+                const res = await fetch('/api/export', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+
+                if (result.job_id) {
+                    pollExportStatus(result.job_id);
+                } else {
+                    throw new Error(result.error || 'Export failed');
+                }
+            } catch (err) {
+                status.className = 'status error';
+                status.textContent = 'Error: ' + err.message;
+                btn.disabled = false;
+            }
+        }
+
+        async function pollExportStatus(jobId) {
+            const btn = document.getElementById('exportBtn');
+            const status = document.getElementById('exportStatus');
+
+            const interval = setInterval(async () => {
+                try {
+                    const res = await fetch(`/api/export/status/${jobId}`);
+                    const job = await res.json();
+
+                    status.textContent = job.message;
+
+                    if (job.status === 'completed') {
+                        clearInterval(interval);
+                        status.className = 'status success';
+
+                        // Build detailed status message
+                        let detailsHtml = `<strong>${job.message}</strong><br>`;
+                        detailsHtml += `<div style="margin-top: 10px;">`;
+                        detailsHtml += `📄 File: ${job.filename || 'exported_tickets.json'}<br>`;
+
+                        // Add priority breakdown if available
+                        if (job.priority_breakdown && Object.keys(job.priority_breakdown).length > 0) {
+                            detailsHtml += `🎯 Priorities: `;
+                            const priorities = [];
+                            for (const [key, value] of Object.entries(job.priority_breakdown)) {
+                                if (value > 0) {
+                                    priorities.push(`${key}: ${value}`);
+                                }
+                            }
+                            detailsHtml += priorities.join(', ') + '<br>';
+                        }
+
+                        detailsHtml += `</div>`;
+                        detailsHtml += `<button onclick="downloadFile('${jobId}')" style="margin-top: 10px;">Download File</button>`;
+
+                        status.innerHTML = detailsHtml;
+                        btn.disabled = false;
+
+                        // Set as current file for analysis
+                        currentFilePath = job.output_file;
+                        showAnalysisSection({
+                            filepath: job.output_file,
+                            filename: job.filename,
+                            ticket_count: job.ticket_count,
+                            size_mb: job.file_size_mb
+                        });
+                    } else if (job.status === 'failed') {
+                        clearInterval(interval);
+                        status.className = 'status error';
+                        btn.disabled = false;
+                    }
+                } catch (err) {
+                    clearInterval(interval);
+                    status.className = 'status error';
+                    status.textContent = 'Error checking status';
+                    btn.disabled = false;
+                }
+            }, 2000);
+        }
+
+        async function downloadFile(jobId) {
+            window.location.href = `/api/download/${jobId}`;
+        }
+
+        async function uploadFile() {
+            const input = document.getElementById('fileUpload');
+            const btn = document.getElementById('uploadBtn');
+            const status = document.getElementById('uploadStatus');
+
+            if (!input.files[0]) {
+                alert('Please select a file');
+                return;
+            }
+
+            btn.disabled = true;
+            status.className = 'status info';
+            status.textContent = 'Uploading...';
+            status.classList.remove('hidden');
+
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+
+            try {
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await res.json();
+
+                if (result.filepath) {
+                    status.className = 'status success';
+                    status.textContent = `Uploaded: ${result.ticket_count} tickets, ${result.size_mb} MB`;
+                    currentFilePath = result.filepath;
+                    showAnalysisSection(result);
+                } else {
+                    throw new Error(result.error || 'Upload failed');
+                }
+            } catch (err) {
+                status.className = 'status error';
+                status.textContent = 'Error: ' + err.message;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function showAnalysisSection(fileInfo) {
+            document.getElementById('analysisSection').style.display = 'block';
+            document.getElementById('currentFileInfo').innerHTML = `
+                <p><strong>Current File:</strong> ${fileInfo.filename || 'Exported file'}</p>
+                <p><strong>Tickets:</strong> ${fileInfo.ticket_count || 'Loading...'}</p>
+                ${fileInfo.size_mb ? `<p><strong>Size:</strong> ${fileInfo.size_mb} MB</p>` : ''}
+            `;
+        }
+
+        async function startAnalysis() {
+            const btn = document.getElementById('analyzeBtn');
+            const status = document.getElementById('analysisStatus');
+            const result = document.getElementById('analysisResult');
+            const prompt = document.getElementById('analysisPrompt').value;
+
+            if (!prompt) {
+                alert('Please enter an analysis prompt');
+                return;
+            }
+
+            btn.disabled = true;
+            status.className = 'status info';
+            status.innerHTML = 'Starting analysis...<span class="loading"></span>';
+            status.classList.remove('hidden');
+            result.classList.add('hidden');
+
+            const reduction = document.querySelector('input[name="reduction"]:checked').value;
+            const reductionValue = document.getElementById('reductionValue').value;
+
+            try {
+                const res = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        filepath: currentFilePath,
+                        prompt: prompt,
+                        reduction_option: reduction,
+                        reduction_value: reductionValue
+                    })
+                });
+                const data = await res.json();
+
+                if (data.job_id) {
+                    pollAnalysisStatus(data.job_id);
+                } else {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+            } catch (err) {
+                status.className = 'status error';
+                status.textContent = 'Error: ' + err.message;
+                btn.disabled = false;
+            }
+        }
+
+        async function pollAnalysisStatus(jobId) {
+            const btn = document.getElementById('analyzeBtn');
+            const status = document.getElementById('analysisStatus');
+            const result = document.getElementById('analysisResult');
+
+            const interval = setInterval(async () => {
+                try {
+                    const res = await fetch(`/api/analyze/status/${jobId}`);
+                    const job = await res.json();
+
+                    status.innerHTML = job.message + '<span class="loading"></span>';
+
+                    if (job.status === 'completed') {
+                        clearInterval(interval);
+                        status.className = 'status success';
+                        status.textContent = 'Analysis complete!';
+                        result.className = 'analysis-result';
+
+                        // Convert markdown to HTML and sanitize
+                        const markdownText = job.result || '';
+                        const rawHtml = marked.parse(markdownText, {
+                            gfm: true,           // GitHub Flavored Markdown
+                            breaks: true,        // Convert \n to <br>
+                            headerIds: false,    // Don't add IDs to headers
+                            mangle: false        // Don't escape email addresses
+                        });
+                        const cleanHtml = DOMPurify.sanitize(rawHtml);
+                        result.innerHTML = cleanHtml;
+
+                        btn.disabled = false;
+                    } else if (job.status === 'failed') {
+                        clearInterval(interval);
+                        status.className = 'status error';
+                        status.textContent = 'Error: ' + job.message;
+                        btn.disabled = false;
+                    }
+                } catch (err) {
+                    clearInterval(interval);
+                    status.className = 'status error';
+                    status.textContent = 'Error checking status';
+                    btn.disabled = false;
+                }
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
