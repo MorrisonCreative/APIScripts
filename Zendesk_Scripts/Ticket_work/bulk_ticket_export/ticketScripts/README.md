@@ -60,6 +60,9 @@ The following environment variables can be configured:
 | `ZENDESK_EMAIL_2` | Second credential set email | No | - | `api@example.com` |
 | `ZENDESK_API_TOKEN_2` | Second credential set API token | No | - | `def456xyz123...` |
 | `ZENDESK_CREDENTIAL_SET` | Select which credential set to use (1 or 2) | No | Auto-detect | `1` or `2` |
+| `PRIORITY_FIELD_ID` | Custom field ID for ticket priority (for credential set 1) | No | `360047533253` | `360047533253` |
+| `PRIORITY_FIELD_ID_1` | Custom field ID for ticket priority (credential set 1, overrides PRIORITY_FIELD_ID) | No | `360047533253` | `360047533253` |
+| `PRIORITY_FIELD_ID_2` | Custom field ID for ticket priority (credential set 2) | No | `360047533253` | `360055678901` |
 | `CUSTOMER_ORGANIZATION_ID` | Organization ID to export tickets from | No* | - | `123456789` |
 | `START_DATE` | Start date for timeframe exports | No* | - | `2024-01-01` |
 | `END_DATE` | End date for timeframe exports | No* | - | `2024-12-31` |
@@ -72,6 +75,36 @@ The following environment variables can be configured:
 \* At least one export mode must be specified (organization ID, date range, or both)
 \*\* At least one complete credential set must be configured (Set 1 or Set 2). If both are configured, use `--credential-set` or `ZENDESK_CREDENTIAL_SET` to select which one.
 
+#### Priority Field ID Configuration
+
+The script uses a custom field named "Ticket Priority" to track ticket priorities (P1-P4). Valid priority values are: **P1** (highest), **P2**, **P3**, and **P4** (lowest).
+
+If your Zendesk instance uses a different custom field ID, you can configure it:
+
+**Priority Selection Logic:**
+
+For **Credential Set 1**:
+1. `PRIORITY_FIELD_ID_1` (if set) - highest priority
+2. `PRIORITY_FIELD_ID` (if set) - fallback
+3. Default value: `360047533253`
+
+For **Credential Set 2**:
+1. `PRIORITY_FIELD_ID_2` (if set)
+2. Default value: `360047533253`
+
+**Example:**
+```bash
+# Use different priority fields for different Zendesk instances
+export PRIORITY_FIELD_ID_1="360047533253"  # Sandbox priority field
+export PRIORITY_FIELD_ID_2="360055678901"  # Production priority field
+```
+
+**Finding Your Priority Field ID:**
+1. Log in to Zendesk Admin
+2. Navigate to **Objects and rules** > **Tickets** > **Fields**
+3. Click on your priority custom field
+4. The ID is in the URL: `https://mycompany.zendesk.com/admin/objects-rules/tickets/ticket-fields/360047533253`
+
 ### Setting Environment Variables
 
 #### Temporary (Current Session Only)
@@ -81,6 +114,7 @@ The following environment variables can be configured:
 export ZENDESK_SUBDOMAIN="mycompany"
 export ZENDESK_EMAIL="admin@example.com"
 export ZENDESK_API_TOKEN="your_api_token_here"
+export PRIORITY_FIELD_ID="360047533253"
 export CUSTOMER_ORGANIZATION_ID="123456789"
 export FETCH_FULL_HISTORY="true"
 export OUTPUT_FILE_PATH="exported_tickets.json"
@@ -91,6 +125,7 @@ export OUTPUT_FILE_PATH="exported_tickets.json"
 set ZENDESK_SUBDOMAIN=mycompany
 set ZENDESK_EMAIL=admin@example.com
 set ZENDESK_API_TOKEN=your_api_token_here
+set PRIORITY_FIELD_ID=360047533253
 set CUSTOMER_ORGANIZATION_ID=123456789
 set FETCH_FULL_HISTORY=true
 set OUTPUT_FILE_PATH=exported_tickets.json
@@ -101,6 +136,7 @@ set OUTPUT_FILE_PATH=exported_tickets.json
 $env:ZENDESK_SUBDOMAIN="mycompany"
 $env:ZENDESK_EMAIL="admin@example.com"
 $env:ZENDESK_API_TOKEN="your_api_token_here"
+$env:PRIORITY_FIELD_ID="360047533253"
 $env:CUSTOMER_ORGANIZATION_ID="123456789"
 $env:FETCH_FULL_HISTORY="true"
 $env:OUTPUT_FILE_PATH="exported_tickets.json"
@@ -122,6 +158,7 @@ $env:OUTPUT_FILE_PATH="exported_tickets.json"
    export ZENDESK_SUBDOMAIN="mycompany"
    export ZENDESK_EMAIL="admin@example.com"
    export ZENDESK_API_TOKEN="your_api_token_here"
+   export PRIORITY_FIELD_ID="360047533253"
    export CUSTOMER_ORGANIZATION_ID="123456789"
    export FETCH_FULL_HISTORY="true"
    export OUTPUT_FILE_PATH="exported_tickets.json"
@@ -176,6 +213,7 @@ $env:OUTPUT_FILE_PATH="exported_tickets.json"
    ZENDESK_SUBDOMAIN=mycompany
    ZENDESK_EMAIL=admin@example.com
    ZENDESK_API_TOKEN=your_api_token_here
+   PRIORITY_FIELD_ID=360047533253
    CUSTOMER_ORGANIZATION_ID=123456789
    FETCH_FULL_HISTORY=true
    OUTPUT_FILE_PATH=exported_tickets.json
@@ -368,6 +406,7 @@ The script supports configuring two sets of Zendesk credentials for working with
 export ZENDESK_SUBDOMAIN="sandbox"
 export ZENDESK_EMAIL="test@example.com"
 export ZENDESK_API_TOKEN="token123"
+export PRIORITY_FIELD_ID_1="360047533253"  # Optional: custom field for sandbox
 ```
 
 **Configure Set 2 (Secondary):**
@@ -375,6 +414,7 @@ export ZENDESK_API_TOKEN="token123"
 export ZENDESK_SUBDOMAIN_2="production"
 export ZENDESK_EMAIL_2="api@example.com"
 export ZENDESK_API_TOKEN_2="token456"
+export PRIORITY_FIELD_ID_2="360055678901"  # Optional: custom field for production
 ```
 
 #### Usage
