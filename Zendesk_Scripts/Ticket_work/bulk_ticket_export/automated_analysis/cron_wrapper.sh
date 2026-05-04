@@ -47,20 +47,20 @@ export EMAIL_TO
 # Calculate date ranges
 END_DATE=$(date +%Y-%m-%d)
 WEEK_AGO=$(date -d "7 days ago" +%Y-%m-%d 2>/dev/null || date -v-7d +%Y-%m-%d)
-TWO_YEARS_AGO=$(date -d "730 days ago" +%Y-%m-%d 2>/dev/null || date -v-730d +%Y-%m-%d)
+SIX_MONTHS_AGO=$(date -d "180 days ago" +%Y-%m-%d 2>/dev/null || date -v-180d +%Y-%m-%d)
 
 echo "Fetching P1 tickets:" >> logs/cron.log
 echo "  1. Created in last 7 days: $WEEK_AGO to $END_DATE" >> logs/cron.log
-echo "  2. All open P1 tickets (any creation date): $TWO_YEARS_AGO to $END_DATE" >> logs/cron.log
+echo "  2. All open P1 tickets (last 6 months): $SIX_MONTHS_AGO to $END_DATE" >> logs/cron.log
 
 # Export 1: P1 tickets created in the last week (Credential Set 1)
 python3 zendesk_exporter.py --start-date "$WEEK_AGO" --end-date "$END_DATE" \
     --priorities P1 --credential-set 1 --format json \
     --output exported_tickets_recent_set1.json 2>&1 | tee -a logs/cron.log
 
-# Export 2: All open P1 tickets (Credential Set 1) - going back 2 years to catch all open tickets
+# Export 2: All open P1 tickets (Credential Set 1) - going back 6 months to catch all open tickets
 # Note: We'll filter for open status in the ticket data later
-python3 zendesk_exporter.py --start-date "$TWO_YEARS_AGO" --end-date "$END_DATE" \
+python3 zendesk_exporter.py --start-date "$SIX_MONTHS_AGO" --end-date "$END_DATE" \
     --priorities P1 --credential-set 1 --format json \
     --output exported_tickets_all_set1.json 2>&1 | tee -a logs/cron.log
 
@@ -70,7 +70,7 @@ python3 zendesk_exporter.py --start-date "$WEEK_AGO" --end-date "$END_DATE" \
     --output exported_tickets_recent_set2.json 2>&1 | tee -a logs/cron.log
 
 # Export 4: All open P1 tickets (Credential Set 2)
-python3 zendesk_exporter.py --start-date "$TWO_YEARS_AGO" --end-date "$END_DATE" \
+python3 zendesk_exporter.py --start-date "$SIX_MONTHS_AGO" --end-date "$END_DATE" \
     --priorities P1 --credential-set 2 --format json \
     --output exported_tickets_all_set2.json 2>&1 | tee -a logs/cron.log
 

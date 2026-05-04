@@ -181,9 +181,155 @@ def merge_ticket_data(data_set1, data_set2):
     return combined_data
 
 
+def chunk_tickets(tickets, chunk_size=20):
+    """
+    Split tickets into smaller chunks for processing.
+
+    Args:
+        tickets (list): List of ticket dictionaries
+        chunk_size (int): Number of tickets per chunk
+
+    Returns:
+        list: List of ticket chunks
+    """
+    chunks = []
+    for i in range(0, len(tickets), chunk_size):
+        chunks.append(tickets[i:i + chunk_size])
+    return chunks
+
+
+def analyze_ticket_chunk(client, chunk, chunk_num, total_chunks, context):
+    """
+    Analyze a single chunk of tickets with Gemini.
+
+    Args:
+        client: Gemini client
+        chunk (list): List of tickets to analyze
+        chunk_num (int): Current chunk number
+        total_chunks (int): Total number of chunks
+        context (str): Context about the credential sets
+
+    Returns:
+        str: Analysis of this chunk
+    """
+    logger.info(f"Analyzing chunk {chunk_num}/{total_chunks} ({len(chunk)} tickets)")
+
+    # Create a simplified version of tickets with only essential fields
+    simplified_tickets = []
+    for ticket in chunk:
+        simplified = {
+            'id': ticket.get('id'),
+            'subject': ticket.get('subject'),
+            'priority': ticket.get('priority'),
+            'status': ticket.get('status'),
+            'organization_name': ticket.get('organization_id'),
+            'created_at': ticket.get('created_at'),
+            'updated_at': ticket.get('updated_at'),
+            'description': ticket.get('description', '')[:500],  # Truncate long descriptions
+            'comment_count': len(ticket.get('comments', [])),
+            'first_comment_date': None,
+            'resolution_date': None
+        }
+
+        # Extract first comment and resolution dates
+        comments = ticket.get('comments', [])
+        if comments:
+            simplified['first_comment_date'] = comments[0].get('created_at')
+
+        if ticket.get('status') in ['solved', 'closed']:
+            simplified['resolution_date'] = ticket.get('updated_at')
+
+        simplified_tickets.append(simplified)
+
+    prompt = f"""Analyze this batch of Zendesk support tickets (Chunk {chunk_num} of {total_chunks}).
+
+{context}
+
+TICKETS:
+{json.dumps(simplified_tickets, indent=2)}
+
+For each ticket, provide:
+- Ticket ID, Organization Name, and Subject
+- Status and Priority
+- Response time (time from creation to first comment, if available)
+- Total comments
+- Time to resolution (if resolved)
+- Brief 1-2 sentence summary based on subject and description
+
+Keep the analysis concise and focused on key details."""
+
+    try:
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt
+        )
+        return response.text
+    except Exception as e:
+        logger.error(f"Gemini API error for chunk {chunk_num}: {e}")
+        raise RuntimeError(f"Failed to analyze chunk {chunk_num}: {e}")
+
+
+def synthesize_analyses(client, chunk_analyses, metadata):
+    """
+    Synthesize individual chunk analyses into a final report.
+
+    Args:
+        client: Gemini client
+        chunk_analyses (list): List of chunk analysis texts
+        metadata (dict): Export metadata
+
+    Returns:
+        str: Final synthesized analysis
+    """
+    logger.info("Synthesizing final report from chunk analyses")
+
+    set1_count = metadata.get('set1_tickets', 0)
+    set2_count = metadata.get('set2_tickets', 0)
+    total = metadata.get('total_tickets', 0)
+
+    combined_analyses = "\n\n---\n\n".join(chunk_analyses)
+
+    prompt = f"""You are creating a final summary report from multiple ticket analysis chunks.
+
+CONTEXT:
+- Total tickets analyzed: {total}
+- Standard Support Customers: {set1_count} tickets
+- US-Only Support Customers: {set2_count} tickets
+- Analysis period: Last 7 days
+
+INDIVIDUAL CHUNK ANALYSES:
+{combined_analyses}
+
+Create a comprehensive final report that:
+
+1. **Executive Summary**: Overall ticket volume, key statistics
+
+2. **Ticket Details**: Consolidate all ticket information from the chunks, organized clearly
+
+3. **Themes and Patterns**: Identify common issues, trends, and concerns across:
+   - Standard Support tickets
+   - US-Only Support tickets
+   - Overall patterns
+
+4. **Notable Issues**: Highlight any critical or urgent items
+
+Format the response clearly for email delivery. Use clear headings and bullet points.
+Do NOT mention "Credential Set" - use "Standard Support" and "US-Only Support" instead."""
+
+    try:
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt
+        )
+        return response.text
+    except Exception as e:
+        logger.error(f"Gemini API error during synthesis: {e}")
+        raise RuntimeError(f"Failed to synthesize final report: {e}")
+
+
 def analyze_with_gemini(ticket_data):
     """
-    Analyze tickets using Google Gemini API.
+    Analyze tickets using Google Gemini API with chunking for large datasets.
 
     Args:
         ticket_data (dict): Ticket data from JSON export
@@ -202,47 +348,46 @@ def analyze_with_gemini(ticket_data):
     if not api_key:
         raise ValueError("GOOGLE_API_KEY environment variable not set")
 
-    # Create analysis prompt
     metadata = ticket_data.get('export_metadata', {})
+    tickets = ticket_data.get('tickets', [])
+
     set1_count = metadata.get('set1_tickets', 0)
     set2_count = metadata.get('set2_tickets', 0)
 
-    prompt = f"""You are analyzing Zendesk support tickets from the last 7 days.
-
-NOTE: This data includes P1 tickets from TWO separate Zendesk instances. In the output, do not identify these or mention "Credential Set", only mention "Standard Support" or "US-Only Support":
-- Credential Set 1: {set1_count} tickets: Standard Support Customers
-- Credential Set 2: {set2_count} tickets: US-Only Support Customers
-- Total: {metadata.get('total_tickets', 0)} tickets
-
-TICKETS DATA:
-{json.dumps(ticket_data, indent=2)}
-
-Please provide:
-1. Total ticket count
-2. For each ticket, provide:
-   - Ticket ID, Organization Name, and Subject
-   - Status and Ticket Priority
-   - Response time (time from creation to first response, if available in comments)
-   - Total customer and agent public comments
-   - Time to resolution (if resolved)
-   - Brief 1-2 sentence summary of the issue and current status/next steps if available
-3. Identify themes or patterns across all tickets and by instance:
-   - Common issue types
-   - Customer segments or organizations affected
-   - Notable trends or concerns
-
-Format the response clearly for email delivery. Use clear headings and bullet points."""
+    context = f"""NOTE: This data includes tickets from TWO separate Zendesk instances:
+- Standard Support Customers: {set1_count} tickets
+- US-Only Support Customers: {set2_count} tickets
+- Total: {metadata.get('total_tickets', 0)} tickets"""
 
     try:
         client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=prompt
-        )
-        analysis = response.text
+
+        # If dataset is small enough, process in one go
+        if len(tickets) <= 30:
+            logger.info(f"Processing {len(tickets)} tickets in a single batch")
+            chunk_analyses = [analyze_ticket_chunk(client, tickets, 1, 1, context)]
+        else:
+            # Split into chunks for large datasets
+            chunk_size = 20  # Conservative chunk size to stay well under token limits
+            chunks = chunk_tickets(tickets, chunk_size)
+            logger.info(f"Split {len(tickets)} tickets into {len(chunks)} chunks")
+
+            # Analyze each chunk
+            chunk_analyses = []
+            for i, chunk in enumerate(chunks, 1):
+                analysis = analyze_ticket_chunk(client, chunk, i, len(chunks), context)
+                chunk_analyses.append(analysis)
+
+        # Synthesize final report
+        if len(chunk_analyses) == 1:
+            # Single chunk - just clean up the format
+            final_analysis = chunk_analyses[0]
+        else:
+            # Multiple chunks - synthesize into cohesive report
+            final_analysis = synthesize_analyses(client, chunk_analyses, metadata)
 
         logger.info("Gemini analysis completed")
-        return analysis
+        return final_analysis
 
     except Exception as e:
         logger.error(f"Gemini API error: {e}")
