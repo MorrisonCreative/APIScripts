@@ -28,6 +28,17 @@ else
     echo "ERROR - Profile file not found at $PROFILE_PATH" >> logs/cron.log
 fi
 
+# Parse optional --start-date and --end-date arguments
+OVERRIDE_START=""
+OVERRIDE_END=""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --start-date) OVERRIDE_START="$2"; shift 2 ;;
+        --end-date)   OVERRIDE_END="$2";   shift 2 ;;
+        *) shift ;;
+    esac
+done
+
 # Ensure log directory exists
 mkdir -p logs
 
@@ -44,10 +55,18 @@ export EMAIL_FROM
 export EMAIL_PASSWORD
 export EMAIL_TO
 
-# Calculate date ranges
-END_DATE=$(date +%Y-%m-%d)
-WEEK_AGO=$(date -d "7 days ago" +%Y-%m-%d 2>/dev/null || date -v-7d +%Y-%m-%d)
-SIX_MONTHS_AGO=$(date -d "180 days ago" +%Y-%m-%d 2>/dev/null || date -v-180d +%Y-%m-%d)
+# Calculate date ranges (overridden by CLI args if provided)
+DEFAULT_END=$(date +%Y-%m-%d)
+DEFAULT_WEEK_AGO=$(date -d "7 days ago" +%Y-%m-%d 2>/dev/null || date -v-7d +%Y-%m-%d)
+DEFAULT_SIX_MONTHS_AGO=$(date -d "180 days ago" +%Y-%m-%d 2>/dev/null || date -v-180d +%Y-%m-%d)
+
+END_DATE="${OVERRIDE_END:-$DEFAULT_END}"
+WEEK_AGO="${OVERRIDE_START:-$DEFAULT_WEEK_AGO}"
+SIX_MONTHS_AGO="${OVERRIDE_START:-$DEFAULT_SIX_MONTHS_AGO}"
+
+if [[ -n "$OVERRIDE_START" || -n "$OVERRIDE_END" ]]; then
+    echo "TEST MODE: Using overridden date range ($WEEK_AGO to $END_DATE)" >> logs/cron.log
+fi
 
 echo "Fetching P1 tickets:" >> logs/cron.log
 echo "  1. Created in last 7 days: $WEEK_AGO to $END_DATE" >> logs/cron.log
@@ -88,19 +107,9 @@ def load_json(filepath):
         return []
 
 def is_p1_and_not_closed(ticket):
-    '''Only include tickets that are CURRENTLY P1 and NOT closed/solved'''
-    # Check priority is currently P1
-    priority = ticket.get('priority', '').upper()
-    custom_fields = ticket.get('custom_fields', [])
-    priority_field = next((f.get('value', '') for f in custom_fields if 'priority' in str(f.get('id', '')).lower()), '')
-
-    is_p1 = priority == 'P1' or str(priority_field).upper() == 'P1'
-
-    # Check status is NOT closed or solved
+    '''Only include tickets that are NOT closed/solved (P1 is already guaranteed by the export query)'''
     status = ticket.get('status', '').lower()
-    is_open = status not in ['closed', 'solved']
-
-    return is_p1 and is_open
+    return status not in ['closed', 'solved']
 
 # Load all exports
 recent_set1 = load_json('exported_tickets_recent_set1.json')
@@ -130,7 +139,10 @@ print(f'Set 2: {len(filtered_recent_set2)} recent + {len(filtered_all_set2)} his
 " 2>&1 | tee -a logs/cron.log
 
 # Now run the analyzer on the combined ticket data
-python3 ticket_analyzer.py --priorities P1 2>&1 | tee -a logs/cron.log
+ANALYZER_ARGS="--priorities P1 --skip-export"
+[[ -n "$OVERRIDE_START" ]] && ANALYZER_ARGS="$ANALYZER_ARGS --start-date $OVERRIDE_START"
+[[ -n "$OVERRIDE_END" ]]   && ANALYZER_ARGS="$ANALYZER_ARGS --end-date $OVERRIDE_END"
+python3 ticket_analyzer.py $ANALYZER_ARGS 2>&1 | tee -a logs/cron.log
 
 # Capture exit code
 EXIT_CODE=$?

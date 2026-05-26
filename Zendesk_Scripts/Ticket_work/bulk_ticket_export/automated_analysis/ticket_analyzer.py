@@ -222,7 +222,8 @@ def analyze_ticket_chunk(client, chunk, chunk_num, total_chunks, context):
             'subject': ticket.get('subject'),
             'priority': ticket.get('priority'),
             'status': ticket.get('status'),
-            'organization_name': ticket.get('organization_id'),
+            'organization_id': ticket.get('organization_id'),
+            'organization_name': ticket.get('organization_name'),
             'created_at': ticket.get('created_at'),
             'updated_at': ticket.get('updated_at'),
             'description': ticket.get('description', '')[:500],  # Truncate long descriptions
@@ -247,16 +248,30 @@ def analyze_ticket_chunk(client, chunk, chunk_num, total_chunks, context):
 
 TICKETS:
 {json.dumps(simplified_tickets, indent=2)}
+Every ticket is a P1 issue. Do not comment on the fact that all tickets in the datset are P1 issues.
 
 For each ticket, provide:
-- Ticket ID, Organization Name, and Subject
+- Ticket ID
+- Organization ID
+- Organization Name
+- Support Type (credential set 1 = General Support, credential set 2 = US-Only Support)
+- date ticket was created
+- Assignee
+- Subject
 - Status and Priority
-- Response time (time from creation to first comment, if available)
-- Total comments
+- Response time (time from creation to first comment)
+- Total comments (customer and agent)
 - Time to resolution (if resolved)
-- Brief 1-2 sentence summary based on subject and description
+- Brief 1-2 sentence summary based on subject and description, noting any ongoing action items that are present.
 
-Keep the analysis concise and focused on key details."""
+Keep the analysis concise and focused on key details.
+
+For the entire analysis, provide insights for:
+- Cause trends
+- engagement insights 
+- any other notable items worth analyzing
+
+"""
 
     try:
         response = client.models.generate_content(
@@ -610,29 +625,52 @@ def main():
         type=str,
         help='Filter by ticket priorities (e.g., "P1" or "P1,P2")'
     )
+    parser.add_argument(
+        '--start-date',
+        type=str,
+        help='Start date in YYYY-MM-DD format (default: 7 days ago)'
+    )
+    parser.add_argument(
+        '--end-date',
+        type=str,
+        help='End date in YYYY-MM-DD format (default: today)'
+    )
+    parser.add_argument(
+        '--skip-export',
+        action='store_true',
+        help='Skip export step and use existing exported_tickets_set1.json and exported_tickets_set2.json'
+    )
 
     args = parser.parse_args()
 
     try:
         # Step 1: Calculate date range
-        start_date, end_date = calculate_date_range()
+        default_start, default_end = calculate_date_range()
+        start_date = args.start_date or default_start
+        end_date = args.end_date or default_end
         logger.info(f"Analysis period: {start_date} to {end_date}")
 
-        # Step 2: Run ticket export for credential set 1
-        logger.info("=" * 80)
-        logger.info("EXPORTING TICKETS FROM CREDENTIAL SET 1")
-        logger.info("=" * 80)
-        json_path_set1 = run_export(start_date, end_date, priorities=args.priorities, credential_set=1)
+        if args.skip_export:
+            # Use already-exported files written by cron_wrapper.sh
+            logger.info("Skipping export step — using existing exported ticket files")
+            ticket_data_set1 = load_ticket_data(OUTPUT_FILE_SET1)
+            ticket_data_set2 = load_ticket_data(OUTPUT_FILE_SET2)
+        else:
+            # Step 2: Run ticket export for credential set 1
+            logger.info("=" * 80)
+            logger.info("EXPORTING TICKETS FROM CREDENTIAL SET 1")
+            logger.info("=" * 80)
+            json_path_set1 = run_export(start_date, end_date, priorities=args.priorities, credential_set=1)
 
-        # Step 3: Run ticket export for credential set 2
-        logger.info("=" * 80)
-        logger.info("EXPORTING TICKETS FROM CREDENTIAL SET 2")
-        logger.info("=" * 80)
-        json_path_set2 = run_export(start_date, end_date, priorities=args.priorities, credential_set=2)
+            # Step 3: Run ticket export for credential set 2
+            logger.info("=" * 80)
+            logger.info("EXPORTING TICKETS FROM CREDENTIAL SET 2")
+            logger.info("=" * 80)
+            json_path_set2 = run_export(start_date, end_date, priorities=args.priorities, credential_set=2)
 
-        # Step 4: Load ticket data from both sets
-        ticket_data_set1 = load_ticket_data(json_path_set1)
-        ticket_data_set2 = load_ticket_data(json_path_set2)
+            # Step 4: Load ticket data from both sets
+            ticket_data_set1 = load_ticket_data(json_path_set1)
+            ticket_data_set2 = load_ticket_data(json_path_set2)
 
         # Step 5: Merge ticket data from both sets
         logger.info("=" * 80)

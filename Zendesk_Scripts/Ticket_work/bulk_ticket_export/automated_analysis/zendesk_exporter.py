@@ -502,6 +502,81 @@ class ZendeskAPIClient:
         logging.debug(f"Fetched {len(all_comments)} comments for ticket ID: {ticket_id}")
         return all_comments
 
+    def get_organization(self, organization_id):
+        """
+        Fetch organization details by ID.
+
+        Args:
+            organization_id (int): Zendesk organization ID
+
+        Returns:
+            dict: Organization details, or None if not found
+        """
+        if not organization_id:
+            return None
+
+        try:
+            logging.debug(f"Fetching organization ID: {organization_id}")
+            response_data = self.get(f"/organizations/{organization_id}.json")
+            return response_data.get("organization")
+        except requests.exceptions.HTTPError as e:
+            logging.warning(f"Failed to fetch organization {organization_id}: {e.response.status_code}")
+            return None
+        except Exception as e:
+            logging.warning(f"Unexpected error fetching organization {organization_id}: {e}")
+            return None
+
+    def enrich_tickets_with_organization_names(self, tickets):
+        """
+        Enrich tickets with organization names by fetching organization details.
+
+        Caches organization lookups to minimize API calls.
+
+        Args:
+            tickets (list): List of ticket dictionaries to enrich
+
+        Returns:
+            list: List of enriched ticket dictionaries with added "organization_name" key
+        """
+        org_cache = {}
+        enriched_tickets = []
+        total = len(tickets)
+
+        logging.info(f"Enriching {total} tickets with organization names...")
+
+        for index, ticket in enumerate(tickets, 1):
+            org_id = ticket.get("organization_id")
+
+            if not org_id:
+                # No organization associated with this ticket
+                ticket["organization_name"] = None
+                enriched_tickets.append(ticket)
+                continue
+
+            # Check cache first
+            if org_id in org_cache:
+                ticket["organization_name"] = org_cache[org_id]
+                enriched_tickets.append(ticket)
+                continue
+
+            # Fetch organization details
+            if index % 50 == 0:
+                logging.info(f"Processing ticket {index}/{total} - fetching organization names...")
+
+            org_data = self.get_organization(org_id)
+            org_name = org_data.get("name") if org_data else "NA"
+
+            # Cache the result
+            org_cache[org_id] = org_name
+            ticket["organization_name"] = org_name
+            enriched_tickets.append(ticket)
+
+            # Rate limiting
+            time.sleep(0.1)
+
+        logging.info(f"Enriched tickets with {len(org_cache)} unique organization names")
+        return enriched_tickets
+
     def enrich_tickets_with_history(self, tickets, include_audits=True, include_comments=True):
         """
         Enrich tickets with their full event history (audits and comments).
@@ -1110,6 +1185,9 @@ if __name__ == "__main__":
             tickets = client.search_tickets_by_organization(organization_id)
 
         logging.info(f"Found {len(tickets)} tickets.")
+
+        # Enrich with organization names (always, as it's needed for analysis)
+        tickets = client.enrich_tickets_with_organization_names(tickets)
 
         # Enrich with full event history if requested
         if fetch_history:
