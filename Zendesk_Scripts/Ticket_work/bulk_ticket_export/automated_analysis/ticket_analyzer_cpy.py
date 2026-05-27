@@ -242,40 +242,35 @@ def analyze_ticket_chunk(client, chunk, chunk_num, total_chunks, context):
 
         simplified_tickets.append(simplified)
 
-    prompt = f"""You are a strict technical analyst. Analyze this batch of Zendesk support tickets (Chunk {chunk_num} of {total_chunks}).
+    prompt = f"""Analyze this batch of Zendesk support tickets (Chunk {chunk_num} of {total_chunks}).
 
 {context}
 
 TICKETS:
 {json.dumps(simplified_tickets, indent=2)}
+Every ticket is a P1 issue. Do not comment on the fact that all tickets in the datset are P1 issues.
 
-STRICT OUTPUT RULES — follow exactly, no exceptions:
-- Every ticket is P1. Do not mention this fact.
-- Do NOT skip, omit, or abbreviate any ticket. Every ticket in the input must appear in the output.
-- Do NOT invent, infer, or paraphrase field values. Use only what is in the data.
-- Do NOT use "N/A", "Unknown", or leave any field blank. If a value is missing from the data, write "Not provided".
-- Do NOT mention "Credential Set". Use "Standard Support" or "US-Only Support" only.
-- Output each ticket using EXACTLY this format, with no deviations:
+For each ticket, provide:
+- Ticket ID
+- Organization ID
+- Organization Name
+- Support Type (credential set 1 = General Support, credential set 2 = US-Only Support)
+- date ticket was created
+- Assignee
+- Subject
+- Status and Priority
+- Response time (time from creation to first comment)
+- Total comments (customer and agent)
+- Time to resolution (if resolved)
+- Brief 1-2 sentence summary based on subject and description, noting any ongoing action items that are present.
 
----
-Ticket ID: <value>
-Organization Name: <value — use the full name from the organization_name field, never omit>
-Organization ID: <value>
-Support Type: <Standard Support or US-Only Support>
-Created: <value>
-Assignee: <value>
-Subject: <value>
-Status: <value>
-Response Time: <time from created_at to first_comment_date, or "No response yet">
-Total Comments: <value>
-Time to Resolution: <time from created_at to resolution_date, or "Unresolved">
-Summary: <1-2 sentences based strictly on subject and description. Note any explicit action items present in the data.>
----
+Keep the analysis concise and focused on key details.
 
-After ALL tickets are listed, provide a section titled "Analysis" containing:
-- Cause Trends: common root causes or issue categories observed
-- Engagement Insights: patterns in response time, comment volume, or assignee activity
-- Notable Items: any tickets or patterns that warrant immediate attention
+For the entire analysis, provide insights for:
+- Cause trends
+- engagement insights 
+- any other notable items worth analyzing
+
 """
 
     try:
@@ -309,7 +304,7 @@ def synthesize_analyses(client, chunk_analyses, metadata):
 
     combined_analyses = "\n\n---\n\n".join(chunk_analyses)
 
-    prompt = f"""You are a strict technical analyst creating a final report from multiple ticket analysis chunks.
+    prompt = f"""You are creating a final summary report from multiple ticket analysis chunks.
 
 CONTEXT:
 - Total tickets analyzed: {total}
@@ -320,44 +315,21 @@ CONTEXT:
 INDIVIDUAL CHUNK ANALYSES:
 {combined_analyses}
 
-STRICT OUTPUT RULES:
-- Do NOT mention "Credential Set". Use "Standard Support" or "US-Only Support" only.
-- Do NOT skip any ticket from the chunk analyses. Every ticket must appear in the final output.
-- Preserve all field values exactly as they appear in the chunk analyses. Do not paraphrase or infer.
-- If Organization Name was provided in the chunk analysis, it must appear in the final output.
+Create a comprehensive final report that:
 
-Produce the final report in this exact structure:
+1. **Executive Summary**: Overall ticket volume, key statistics
 
-## Executive Summary
-- Total tickets: {total} ({set1_count} Standard Support, {set2_count} US-Only Support)
-- Brief 2-3 sentence overview of the period
+2. **Ticket Details**: Consolidate all ticket information from the chunks, organized clearly
 
-## Ticket Details
-Reproduce every ticket from the chunk analyses using this format:
----
-Ticket ID: <value>
-Organization Name: <value>
-Organization ID: <value>
-Support Type: <value>
-Created: <value>
-Assignee: <value>
-Subject: <value>
-Status: <value>
-Response Time: <value>
-Total Comments: <value>
-Time to Resolution: <value>
-Summary: <value>
----
+3. **Themes and Patterns**: Identify common issues, trends, and concerns across:
+   - Standard Support tickets
+   - US-Only Support tickets
+   - Overall patterns
 
-## Themes and Patterns
-- Standard Support: <observations>
-- US-Only Support: <observations>
-- Overall: <observations>
+4. **Notable Issues**: Highlight any critical or urgent items
 
-## Notable Issues
-- List any tickets or patterns that warrant immediate attention
-
-Format clearly for email delivery using headings and bullet points."""
+Format the response clearly for email delivery. Use clear headings and bullet points.
+Do NOT mention "Credential Set" - use "Standard Support" and "US-Only Support" instead."""
 
     try:
         response = client.models.generate_content(
