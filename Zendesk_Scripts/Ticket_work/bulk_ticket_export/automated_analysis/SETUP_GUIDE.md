@@ -174,6 +174,23 @@ Check the log:
 cat logs/cron.log
 ```
 
+#### Testing with a Custom Date Range
+
+To test the cron wrapper against a specific time window without modifying any code, pass `--start-date` and `--end-date`:
+
+```bash
+./cron_wrapper.sh --start-date 2026-05-01 --end-date 2026-05-15
+```
+
+Both flags are optional — omitting them falls back to the default (last 7 days for recent tickets, last 6 months for the open P1 lookback). You can also pass just one:
+
+```bash
+./cron_wrapper.sh --start-date 2026-01-01   # custom start, end defaults to today
+./cron_wrapper.sh --end-date 2026-04-30     # custom end, start defaults to 7 days before end
+```
+
+The date range is passed through to both the exporter and the analyzer automatically.
+
 ## 🎯 Usage
 
 ### Manual Runs
@@ -325,11 +342,20 @@ If your system isn't set to Pacific time:
 
 ### Change Analysis Timeframe
 
-Edit `ticket_analyzer.py`, line ~48:
+**For one-off runs**, pass dates directly without editing any code:
+
+```bash
+# Via cron wrapper (recommended — runs full export + analysis):
+./cron_wrapper.sh --start-date 2026-05-01 --end-date 2026-05-15
+
+# Via ticket_analyzer.py directly (skips export, uses existing exported files):
+python3 ticket_analyzer.py --start-date 2026-05-01 --end-date 2026-05-15 --dry-run
+```
+
+**To permanently change the default window**, edit `ticket_analyzer.py` line ~48:
 
 ```python
 def calculate_date_range():
-    """Calculate date range for last 7 days."""
     end_date = datetime.now()
     start_date = end_date - timedelta(days=7)  # Change 7 to any number
     return start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d')
