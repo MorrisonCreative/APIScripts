@@ -11,14 +11,21 @@ This guide will help you set up the automated Zendesk ticket analysis system tha
 The following files have been created in this directory:
 
 ```
-/Users/hunter-morrison/git/APIScripts/Zendesk_Scripts/Ticket_work/bulk_ticket_export/
-├── ticket_analyzer.py        ← Main analysis script (Gemini AI)
-├── run_analysis.sh            ← Quick test script (dry-run mode)
-├── cron_wrapper.sh            ← Cron job wrapper
-├── requirements.txt           ← Python dependencies (already installed ✓)
+/Users/hunter-morrison/git/APIScripts/Zendesk_Scripts/Ticket_work/bulk_ticket_export/automated_analysis/
+├── ticket_analyzer.py        ← Main orchestrator: runs export, merges data, calls Gemini, sends email
+├── zendesk_exporter.py       ← Zendesk API client: fetches & filters tickets, outputs JSON
+├── run_analysis.sh            ← Quick test script (dry-run mode, no email sent)
+├── cron_wrapper.sh            ← Cron job wrapper (loads env vars, calls ticket_analyzer.py)
+├── requirements.txt           ← Python dependencies
 ├── logs/                      ← Log directory for cron output
 └── SETUP_GUIDE.md            ← This file
 ```
+
+### How the scripts work together
+
+`ticket_analyzer.py` is the entry point for every run. It calls `zendesk_exporter.py` as a subprocess — twice, once per credential set — passing the date range and priority filter as CLI arguments. The exporter hits the Zendesk REST API, pulls full ticket history, and writes the results to `exported_tickets_set1.json` and `exported_tickets_set2.json`. The analyzer then merges both files, chunks the tickets, sends them to Gemini for analysis, and emails the final report.
+
+**You should never need to run `zendesk_exporter.py` directly** — `ticket_analyzer.py` (or `cron_wrapper.sh`) handles that automatically.
 
 ## 🔧 Setup Steps
 
@@ -412,45 +419,153 @@ If you encounter issues:
 
 ---
 
-## 📦 Portability - Moving to Another Machine
+## 📦 Installing on a New Machine
 
-**All scripts are portable!** They auto-detect their location, so you can:
+All scripts are fully portable — they auto-detect their location at runtime, so no hardcoded paths need to change when you move them.
 
-1. **Copy the entire directory** to another machine:
-   ```bash
-   # On source machine:
-   tar -czf ticket-analyzer.tar.gz /path/to/bulk_ticket_export
+### Step A: Copy the scripts
 
-   # Transfer to new machine, then:
-   tar -xzf ticket-analyzer.tar.gz
-   cd bulk_ticket_export
-   ```
+**Option 1 — Clone from git (recommended):**
+```bash
+git clone <your-repo-url>
+cd APIScripts/Zendesk_Scripts/Ticket_work/bulk_ticket_export/automated_analysis
+```
 
-2. **Set up environment variables** on the new machine (Step 1 above)
+**Option 2 — Transfer via archive:**
+```bash
+# On the source machine:
+tar -czf ticket-analyzer.tar.gz /path/to/automated_analysis
 
-3. **Install Python dependencies:**
-   ```bash
-   pip3 install -r requirements.txt
-   ```
+# On the new machine:
+tar -xzf ticket-analyzer.tar.gz
+cd automated_analysis
+```
 
-4. **Test it:**
-   ```bash
-   ./run_analysis.sh gemini P1
-   ```
+### Step B: Install Python
 
-5. **Install cron job** with the new path (Step 4 above)
+The scripts require **Python 3.8+**.
 
-**What gets auto-detected:**
-- ✅ Script directory location
-- ✅ Paths to `zendesk_exporter.py` and output files
-- ✅ Log directory location
+```bash
+# Check if Python is installed:
+python3 --version
 
-**What you need to configure:**
-- ⚙️ Environment variables (API keys, email credentials)
-- ⚙️ Cron job with full path to wrapper script
+# macOS — install via Homebrew if missing:
+brew install python3
+
+# Ubuntu/Debian:
+sudo apt-get install python3 python3-pip
+```
+
+### Step C: Install Python dependencies
+
+```bash
+pip3 install -r requirements.txt
+```
+
+This installs:
+- `google-genai` — Gemini AI SDK
+- `requests` — Zendesk API calls (used by `zendesk_exporter.py`)
+- `markdown` — email HTML rendering
+
+If you're using a virtual environment:
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Step D: Configure environment variables
+
+Add all required variables to `~/.zshrc` (or `~/.bashrc` on Linux):
+
+```bash
+nano ~/.zshrc
+```
+
+```bash
+# --- Zendesk API - Credential Set 1 ---
+export ZENDESK_SUBDOMAIN="your_subdomain"
+export ZENDESK_EMAIL="your_zendesk_email@company.com"
+export ZENDESK_API_TOKEN="your_zendesk_api_token"
+
+# --- Zendesk API - Credential Set 2 ---
+export ZENDESK_SUBDOMAIN_2="your_second_subdomain"
+export ZENDESK_EMAIL_2="your_second_zendesk_email@company.com"
+export ZENDESK_API_TOKEN_2="your_second_zendesk_api_token"
+
+# --- Priority Field IDs ---
+export PRIORITY_FIELD_ID="360047533253"    # Credential set 1
+export PRIORITY_FIELD_ID_2="123456789012"  # Credential set 2
+
+# --- Gemini API Key ---
+export GOOGLE_API_KEY="AIza..."
+
+# --- Gmail SMTP ---
+export EMAIL_FROM="your_email@gmail.com"
+export EMAIL_PASSWORD="your_16_char_app_password"
+export EMAIL_TO="recipient1@email.com,recipient2@email.com"
+```
+
+Reload the shell:
+```bash
+source ~/.zshrc
+```
+
+Verify the variables loaded:
+```bash
+env | grep -E "ZENDESK|GOOGLE|EMAIL|PRIORITY_FIELD"
+```
+
+### Step E: Make shell scripts executable
+
+```bash
+chmod +x run_analysis.sh cron_wrapper.sh
+```
+
+### Step F: Test the installation
+
+```bash
+# Dry run — exports tickets and prints analysis, no email sent:
+./run_analysis.sh P1
+
+# If that passes, send a real email:
+python3 ticket_analyzer.py --priorities P1
+```
+
+### Step G: Install the cron job
+
+```bash
+# Get the full path to the wrapper:
+WRAPPER_PATH="$(pwd)/cron_wrapper.sh"
+echo $WRAPPER_PATH   # Copy this output
+
+# Open crontab editor:
+crontab -e
+
+# Add this line (replace the path with your output from above):
+0 5 * * 1 /full/path/to/cron_wrapper.sh >> /full/path/to/logs/cron.log 2>&1
+```
+
+Verify it was saved:
+```bash
+crontab -l
+```
+
+Test the wrapper runs end-to-end before waiting for Monday:
+```bash
+./cron_wrapper.sh
+cat logs/cron.log
+```
+
+### What gets auto-detected vs. what you configure
+
+| | Detail |
+|---|---|
+| **Auto-detected** | Script directory, paths to `zendesk_exporter.py`, output JSON files, log directory |
+| **You configure** | All env vars (API keys, email credentials), cron job entry with full path |
 
 ---
 
-**System is ready! 🚀**
+**System is ready!**
 
 Next Monday at 5 AM Pacific, you'll receive your first automated ticket analysis email.
