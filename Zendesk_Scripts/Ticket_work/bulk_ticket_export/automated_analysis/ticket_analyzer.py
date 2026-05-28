@@ -217,6 +217,31 @@ def analyze_ticket_chunk(client, chunk, chunk_num, total_chunks, context):
     # Create a simplified version of tickets with only essential fields
     simplified_tickets = []
     for ticket in chunk:
+        created_at = ticket.get('created_at')
+        requester_id = ticket.get('requester_id')
+        comments = ticket.get('comments', [])
+
+        # Find first public comment from a non-requester (i.e., an agent)
+        first_agent_comment = next(
+            (c for c in comments if c.get('public') and c.get('author_id') != requester_id),
+            None
+        )
+
+        if first_agent_comment and created_at:
+            try:
+                created_dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                responded_dt = datetime.fromisoformat(
+                    first_agent_comment['created_at'].replace('Z', '+00:00')
+                )
+                delta_seconds = int((responded_dt - created_dt).total_seconds())
+                hours, remainder = divmod(max(delta_seconds, 0), 3600)
+                minutes = remainder // 60
+                response_time = f"{hours}h {minutes}m"
+            except Exception:
+                response_time = "Calculation error"
+        else:
+            response_time = "No response yet"
+
         simplified = {
             'id': ticket.get('id'),
             'subject': ticket.get('subject'),
@@ -224,18 +249,13 @@ def analyze_ticket_chunk(client, chunk, chunk_num, total_chunks, context):
             'status': ticket.get('status'),
             'organization_id': ticket.get('organization_id'),
             'organization_name': ticket.get('organization_name'),
-            'created_at': ticket.get('created_at'),
+            'created_at': created_at,
             'updated_at': ticket.get('updated_at'),
             'description': ticket.get('description', '')[:500],  # Truncate long descriptions
-            'comment_count': len(ticket.get('comments', [])),
-            'first_comment_date': None,
+            'comment_count': len(comments),
+            'response_time': response_time,
             'resolution_date': None
         }
-
-        # Extract first comment and resolution dates
-        comments = ticket.get('comments', [])
-        if comments:
-            simplified['first_comment_date'] = comments[0].get('created_at')
 
         if ticket.get('status') in ['solved', 'closed']:
             simplified['resolution_date'] = ticket.get('updated_at')
@@ -255,6 +275,7 @@ STRICT OUTPUT RULES — follow exactly, no exceptions:
 - Do NOT invent, infer, or paraphrase field values. Use only what is in the data.
 - Do NOT use "N/A", "Unknown", or leave any field blank. If a value is missing from the data, write "Not provided".
 - Do NOT mention "Credential Set". Use "Standard Support" or "US-Only Support" only.
+- The "response_time" field in the data is pre-calculated (time from ticket creation to first public agent comment). Copy it exactly — do NOT recalculate or modify it.
 - Output each ticket using EXACTLY this format, with no deviations:
 
 ---
@@ -266,10 +287,10 @@ Created: <value>
 Assignee: <value>
 Subject: <value>
 Status: <value>
-Response Time: <time from created_at to first_comment_date, or "No response yet">
+Response Time: <copy the response_time field value exactly>
 Total Comments: <value>
 Time to Resolution: <time from created_at to resolution_date, or "Unresolved">
-Summary: <1-2 sentences based strictly on subject and description. Note any explicit action items present in the data.>
+Summary: <Brief summary of the issue and action taken so far. Note any explicit action items present in the data.>
 ---
 
 After ALL tickets are listed, provide a section titled "Analysis" containing:
