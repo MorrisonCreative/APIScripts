@@ -39,8 +39,17 @@ Examples:
     # Filter by custom field value with wildcard (client-side filtering)
     python zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 --field-filter 360047533253=v28*
 
-    # Multiple field filters (all must match)
+    # Multiple AND filters (all must match)
     python zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 --field-filter 360047533253=v28* --field-filter 123456=prod*
+
+    # OR within a single field (comma-separated patterns)
+    python zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 --field-filter 360047533253=v28*,v29*
+
+    # OR between different fields (at least one must match)
+    python zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 --or-field-filter 360047533253=v28* --or-field-filter 123456=false
+
+    # Combined: AND filter plus OR group (both conditions apply)
+    python zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 --field-filter 999=active --or-field-filter 360047533253=v28* --or-field-filter 123456=false
 """
 
 import requests
@@ -171,68 +180,100 @@ def validate_date_field(field):
     return True
 
 
-def parse_field_filters(filter_strings):
+def _parse_single_filter(item):
     """
-    Parse a list of '<field_id>=<pattern>' strings into a list of (field_id, pattern) tuples.
+    Parse one '<field_id>=<pattern>[,<pattern>...]' string.
 
-    Supports shell-style wildcards in the pattern via fnmatch:
-      *   matches any sequence of characters
-      ?   matches any single character
-      [seq]  matches any character in seq
-
-    Args:
-        filter_strings (list[str]): Strings like ["360047533253=v28*", "123456=prod*"]
+    Comma-separated patterns are treated as OR within that field.
 
     Returns:
-        list[tuple]: List of (field_id_int, pattern_str) tuples, or empty list if input is falsy
+        tuple: (field_id_int, [pattern, ...])
 
     Raises:
-        ValueError: If any string is not in '<field_id>=<pattern>' format or field_id is not numeric
+        ValueError: If the format is invalid or field_id is not numeric
     """
-    if not filter_strings:
-        return []
-
-    filters = []
-    for item in filter_strings:
-        if '=' not in item:
-            raise ValueError(f"Invalid field filter '{item}'. Expected format: <field_id>=<pattern>")
-        field_id_str, pattern = item.split('=', 1)
-        field_id_str = field_id_str.strip()
-        if not field_id_str.isdigit():
-            raise ValueError(f"Field ID must be numeric, got: '{field_id_str}'")
-        filters.append((int(field_id_str), pattern))
-    return filters
+    if '=' not in item:
+        raise ValueError(f"Invalid field filter '{item}'. Expected format: <field_id>=<pattern>[,<pattern>...]")
+    field_id_str, patterns_str = item.split('=', 1)
+    field_id_str = field_id_str.strip()
+    if not field_id_str.isdigit():
+        raise ValueError(f"Field ID must be numeric, got: '{field_id_str}'")
+    patterns = [p.strip() for p in patterns_str.split(',') if p.strip()]
+    if not patterns:
+        raise ValueError(f"No patterns provided in filter '{item}'")
+    return (int(field_id_str), patterns)
 
 
-def apply_field_filters(tickets, field_filters):
+def parse_field_filters(and_strings, or_strings):
     """
-    Filter tickets by matching custom field values against wildcard patterns.
+    Parse field filter arguments into an AND-list and an OR-group.
 
-    All supplied filters must match for a ticket to be included (AND logic).
-    Matching is case-insensitive. A ticket that is missing a required field is excluded.
+    Filter logic:
+      --field-filter entries  → AND: every entry must match
+      --or-field-filter entries → OR: at least one entry must match
+
+    Within a single filter, comma-separated patterns are OR'd against that field's value.
+
+    Args:
+        and_strings (list[str]): From --field-filter, e.g. ["360047533253=v28*,v29*"]
+        or_strings  (list[str]): From --or-field-filter, e.g. ["111=v28*", "222=false"]
+
+    Returns:
+        tuple: (and_filters, or_filters)
+            and_filters: list of (field_id_int, [patterns]) — all must match
+            or_filters:  list of (field_id_int, [patterns]) — at least one must match
+                         (empty list means the OR group is not applied)
+
+    Raises:
+        ValueError: If any string is malformed
+    """
+    and_filters = [_parse_single_filter(s) for s in (and_strings or [])]
+    or_filters  = [_parse_single_filter(s) for s in (or_strings  or [])]
+    return and_filters, or_filters
+
+
+def _field_condition_matches(custom_fields, field_id, patterns):
+    """Return True if the ticket's field value matches any of the given patterns."""
+    raw_value = custom_fields.get(field_id)
+    value = str(raw_value).lower() if raw_value is not None else ''
+    return any(fnmatch.fnmatch(value, p.lower()) for p in patterns)
+
+
+def apply_field_filters(tickets, and_filters, or_filters):
+    """
+    Filter tickets by custom field values using AND + OR logic.
+
+    A ticket is kept when:
+      - Every AND filter matches (all --field-filter conditions), AND
+      - At least one OR filter matches, if any OR filters are defined
+
+    Within each filter, comma-separated patterns are OR'd against the field value.
+    Matching is case-insensitive. A ticket missing a required field is treated as ''.
 
     Args:
         tickets (list): List of ticket dictionaries
-        field_filters (list[tuple]): List of (field_id_int, pattern_str) from parse_field_filters()
+        and_filters (list): List of (field_id_int, [patterns]) — all must match
+        or_filters  (list): List of (field_id_int, [patterns]) — at least one must match
 
     Returns:
         list: Filtered list of ticket dictionaries
     """
-    if not field_filters:
+    if not and_filters and not or_filters:
         return tickets
 
     matched = []
     for ticket in tickets:
         custom_fields = {f['id']: f.get('value', '') for f in ticket.get('custom_fields', [])}
-        keep = True
-        for field_id, pattern in field_filters:
-            raw_value = custom_fields.get(field_id)
-            value = str(raw_value).lower() if raw_value is not None else ''
-            if not fnmatch.fnmatch(value, pattern.lower()):
-                keep = False
-                break
-        if keep:
-            matched.append(ticket)
+
+        # AND: every filter must match
+        if not all(_field_condition_matches(custom_fields, fid, pats) for fid, pats in and_filters):
+            continue
+
+        # OR: at least one filter must match (skip check if no OR filters defined)
+        if or_filters and not any(_field_condition_matches(custom_fields, fid, pats) for fid, pats in or_filters):
+            continue
+
+        matched.append(ticket)
 
     logging.info(f"Field filter applied: {len(matched)}/{len(tickets)} tickets matched")
     return matched
@@ -1076,10 +1117,15 @@ Examples:
 
     # Custom field filtering with wildcard support
     parser.add_argument('--field-filter', action='append', dest='field_filters',
-                       metavar='FIELD_ID=PATTERN',
-                       help='Filter by custom field value using wildcards (e.g. 360047533253=v28*). '
-                            'Repeatable; all filters must match (AND logic). '
-                            'Wildcards: * (any chars), ? (one char), [seq] (char set).')
+                       metavar='FIELD_ID=PATTERN[,PATTERN]',
+                       help='Filter by custom field value using wildcards. Repeatable; all entries '
+                            'must match (AND logic). Comma-separate patterns for OR within a field '
+                            '(e.g. 360047533253=v28*,v29*). Wildcards: * ? [seq].')
+    parser.add_argument('--or-field-filter', action='append', dest='or_field_filters',
+                       metavar='FIELD_ID=PATTERN[,PATTERN]',
+                       help='Like --field-filter but entries are OR\'d together — at least one must '
+                            'match (e.g. --or-field-filter 111=v28* --or-field-filter 222=false). '
+                            'Comma-separate patterns for OR within a single field.')
 
     # Export options
     parser.add_argument('--format', choices=['json', 'csv'],
@@ -1209,7 +1255,7 @@ if __name__ == "__main__":
         else:
             priorities = None
 
-        field_filters = parse_field_filters(args.field_filters)
+        and_filters, or_filters = parse_field_filters(args.field_filters, args.or_field_filters)
 
         if has_organization and organization_id and not organization_id.isdigit():
             raise ValueError(f"Invalid organization ID: {organization_id}. Must be numeric.")
@@ -1270,10 +1316,12 @@ if __name__ == "__main__":
         logging.info(f"Found {len(tickets)} tickets.")
 
         # Apply custom field filters (client-side wildcard matching)
-        if field_filters:
-            filter_desc = ', '.join(f"{fid}={pat}" for fid, pat in field_filters)
-            logging.info(f"Applying field filters: {filter_desc}")
-            tickets = apply_field_filters(tickets, field_filters)
+        if and_filters or or_filters:
+            if and_filters:
+                logging.info(f"AND filters: {', '.join(f'{fid}={pats}' for fid, pats in and_filters)}")
+            if or_filters:
+                logging.info(f"OR filters:  {', '.join(f'{fid}={pats}' for fid, pats in or_filters)}")
+            tickets = apply_field_filters(tickets, and_filters, or_filters)
             logging.info(f"{len(tickets)} tickets remain after field filtering.")
 
         # Enrich with organization names (always, as it's needed for analysis)
@@ -1306,7 +1354,8 @@ if __name__ == "__main__":
                         "ticket_priorities": priorities,
                         "priority_field_id": priority_field_id,
                         "organization_id": organization_id,
-                        "field_filters": [f"{fid}={pat}" for fid, pat in field_filters] if field_filters else [],
+                        "field_filters": [f"{fid}={','.join(pats)}" for fid, pats in and_filters],
+                        "or_field_filters": [f"{fid}={','.join(pats)}" for fid, pats in or_filters],
                         "total_tickets": len(tickets),
                         "priority_breakdown": priority_breakdown,
                         "includes_history": fetch_history,

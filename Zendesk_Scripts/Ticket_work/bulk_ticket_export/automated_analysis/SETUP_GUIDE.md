@@ -229,19 +229,48 @@ The cron job will automatically run every **Monday at 5:00 AM Pacific Time**.
 
 ### Filtering by Custom Field Value (Wildcard)
 
-You can filter exported tickets by any Zendesk custom field using `--field-filter`. This is a client-side filter applied after the API fetch, so it works with any field — not just priority.
+You can filter exported tickets by any Zendesk custom field. Filtering is client-side (applied after the API fetch) and supports wildcards, AND logic, OR logic, or any combination.
 
-**Format:** `--field-filter <field_id>=<pattern>`
+#### AND filters — all must match (`--field-filter`)
 
 ```bash
 # Keep only tickets where field 360047533253 starts with "v28"
 python3 zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 \
     --field-filter 360047533253=v28*
 
-# Stack multiple filters (all must match — AND logic)
+# Both filters must match
 python3 zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 \
     --field-filter 360047533253=v28* \
     --field-filter 123456789=prod*
+```
+
+#### OR within a single field — comma-separated patterns
+
+```bash
+# Field 360047533253 matches "v28..." OR "v29..."
+python3 zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 \
+    --field-filter 360047533253=v28*,v29*
+```
+
+#### OR between different fields (`--or-field-filter`)
+
+```bash
+# Field 360047533253 starts with "v28" OR field 123456 equals "false"
+python3 zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 \
+    --or-field-filter 360047533253=v28* \
+    --or-field-filter 123456=false
+```
+
+#### Combined AND + OR
+
+AND filters and the OR group are evaluated together — both conditions must be satisfied:
+
+```bash
+# Field 999 must equal "active" (AND), AND either field 360047533253=v28* or field 123456=false (OR group)
+python3 zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 \
+    --field-filter 999=active \
+    --or-field-filter 360047533253=v28* \
+    --or-field-filter 123456=false
 ```
 
 **Wildcard syntax (shell-style):**
@@ -253,9 +282,9 @@ python3 zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 \
 | `v?.0`  | "v1.0", "v2.0", etc. |
 | `[ab]*` | Any value starting with "a" or "b" |
 
-Matching is **case-insensitive**. A ticket missing the specified field is excluded.
+Matching is **case-insensitive**. A ticket missing a filtered field is treated as an empty string.
 
-The applied filters are recorded in the JSON output under `export_metadata.field_filters`.
+Applied filters are recorded in the JSON output under `export_metadata.field_filters` (AND) and `export_metadata.or_field_filters` (OR).
 
 ### Changing Priority Filter
 
