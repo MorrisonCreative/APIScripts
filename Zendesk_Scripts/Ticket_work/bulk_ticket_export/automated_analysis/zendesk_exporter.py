@@ -35,11 +35,18 @@ Examples:
 
     # Use second credential set with custom priority field
     python zendesk_exporter.py --credential-set 2 --organization-id 67890
+
+    # Filter by custom field value with wildcard (client-side filtering)
+    python zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 --field-filter 360047533253=v28*
+
+    # Multiple field filters (all must match)
+    python zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 --field-filter 360047533253=v28* --field-filter 123456=prod*
 """
 
 import requests
 import json
 import csv
+import fnmatch
 import os
 import sys
 import logging
@@ -162,6 +169,73 @@ def validate_date_field(field):
     if field not in VALID_DATE_FIELDS:
         raise ValueError(f"Invalid date field: {field}. Valid values: {VALID_DATE_FIELDS}")
     return True
+
+
+def parse_field_filters(filter_strings):
+    """
+    Parse a list of '<field_id>=<pattern>' strings into a list of (field_id, pattern) tuples.
+
+    Supports shell-style wildcards in the pattern via fnmatch:
+      *   matches any sequence of characters
+      ?   matches any single character
+      [seq]  matches any character in seq
+
+    Args:
+        filter_strings (list[str]): Strings like ["360047533253=v28*", "123456=prod*"]
+
+    Returns:
+        list[tuple]: List of (field_id_int, pattern_str) tuples, or empty list if input is falsy
+
+    Raises:
+        ValueError: If any string is not in '<field_id>=<pattern>' format or field_id is not numeric
+    """
+    if not filter_strings:
+        return []
+
+    filters = []
+    for item in filter_strings:
+        if '=' not in item:
+            raise ValueError(f"Invalid field filter '{item}'. Expected format: <field_id>=<pattern>")
+        field_id_str, pattern = item.split('=', 1)
+        field_id_str = field_id_str.strip()
+        if not field_id_str.isdigit():
+            raise ValueError(f"Field ID must be numeric, got: '{field_id_str}'")
+        filters.append((int(field_id_str), pattern))
+    return filters
+
+
+def apply_field_filters(tickets, field_filters):
+    """
+    Filter tickets by matching custom field values against wildcard patterns.
+
+    All supplied filters must match for a ticket to be included (AND logic).
+    Matching is case-insensitive. A ticket that is missing a required field is excluded.
+
+    Args:
+        tickets (list): List of ticket dictionaries
+        field_filters (list[tuple]): List of (field_id_int, pattern_str) from parse_field_filters()
+
+    Returns:
+        list: Filtered list of ticket dictionaries
+    """
+    if not field_filters:
+        return tickets
+
+    matched = []
+    for ticket in tickets:
+        custom_fields = {f['id']: f.get('value', '') for f in ticket.get('custom_fields', [])}
+        keep = True
+        for field_id, pattern in field_filters:
+            raw_value = custom_fields.get(field_id)
+            value = str(raw_value).lower() if raw_value is not None else ''
+            if not fnmatch.fnmatch(value, pattern.lower()):
+                keep = False
+                break
+        if keep:
+            matched.append(ticket)
+
+    logging.info(f"Field filter applied: {len(matched)}/{len(tickets)} tickets matched")
+    return matched
 
 
 def build_search_query(organization_id=None, start_date=None, end_date=None,
@@ -1000,6 +1074,13 @@ Examples:
     parser.add_argument('--credential-set', type=int, choices=[1, 2],
                        help='Select which credential set to use (1 or 2)')
 
+    # Custom field filtering with wildcard support
+    parser.add_argument('--field-filter', action='append', dest='field_filters',
+                       metavar='FIELD_ID=PATTERN',
+                       help='Filter by custom field value using wildcards (e.g. 360047533253=v28*). '
+                            'Repeatable; all filters must match (AND logic). '
+                            'Wildcards: * (any chars), ? (one char), [seq] (char set).')
+
     # Export options
     parser.add_argument('--format', choices=['json', 'csv'],
                        help='Output file format (default: json, or from OUTPUT_FORMAT env var)')
@@ -1128,6 +1209,8 @@ if __name__ == "__main__":
         else:
             priorities = None
 
+        field_filters = parse_field_filters(args.field_filters)
+
         if has_organization and organization_id and not organization_id.isdigit():
             raise ValueError(f"Invalid organization ID: {organization_id}. Must be numeric.")
 
@@ -1186,6 +1269,13 @@ if __name__ == "__main__":
 
         logging.info(f"Found {len(tickets)} tickets.")
 
+        # Apply custom field filters (client-side wildcard matching)
+        if field_filters:
+            filter_desc = ', '.join(f"{fid}={pat}" for fid, pat in field_filters)
+            logging.info(f"Applying field filters: {filter_desc}")
+            tickets = apply_field_filters(tickets, field_filters)
+            logging.info(f"{len(tickets)} tickets remain after field filtering.")
+
         # Enrich with organization names (always, as it's needed for analysis)
         tickets = client.enrich_tickets_with_organization_names(tickets)
 
@@ -1216,6 +1306,7 @@ if __name__ == "__main__":
                         "ticket_priorities": priorities,
                         "priority_field_id": priority_field_id,
                         "organization_id": organization_id,
+                        "field_filters": [f"{fid}={pat}" for fid, pat in field_filters] if field_filters else [],
                         "total_tickets": len(tickets),
                         "priority_breakdown": priority_breakdown,
                         "includes_history": fetch_history,

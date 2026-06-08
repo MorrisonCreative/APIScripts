@@ -227,6 +227,36 @@ The cron job will automatically run every **Monday at 5:00 AM Pacific Time**.
 - Sends email to configured recipients
 - Logs output to `logs/cron.log`
 
+### Filtering by Custom Field Value (Wildcard)
+
+You can filter exported tickets by any Zendesk custom field using `--field-filter`. This is a client-side filter applied after the API fetch, so it works with any field — not just priority.
+
+**Format:** `--field-filter <field_id>=<pattern>`
+
+```bash
+# Keep only tickets where field 360047533253 starts with "v28"
+python3 zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 \
+    --field-filter 360047533253=v28*
+
+# Stack multiple filters (all must match — AND logic)
+python3 zendesk_exporter.py --start-date 2024-01-01 --end-date 2024-01-31 \
+    --field-filter 360047533253=v28* \
+    --field-filter 123456789=prod*
+```
+
+**Wildcard syntax (shell-style):**
+
+| Pattern | Matches |
+|---------|---------|
+| `v28*`  | Any value starting with "v28" |
+| `*prod*` | Any value containing "prod" |
+| `v?.0`  | "v1.0", "v2.0", etc. |
+| `[ab]*` | Any value starting with "a" or "b" |
+
+Matching is **case-insensitive**. A ticket missing the specified field is excluded.
+
+The applied filters are recorded in the JSON output under `export_metadata.field_filters`.
+
 ### Changing Priority Filter
 
 To change which priorities are analyzed, edit `cron_wrapper.sh`:
